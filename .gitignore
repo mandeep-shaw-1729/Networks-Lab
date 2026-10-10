@@ -1,0 +1,10 @@
+# Ignore compiled executable binaries inside any assignment folder
+**/sender
+**/receiver
+**/test_eval
+
+# Ignore LaTeX typesetting logs
+*.aux
+*.log
+*.out
+*.toc
