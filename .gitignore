@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ignore compiled executable binaries inside any assignment folder
 **/sender
 **/receiver
@@ -8,3 +9,7 @@
 *.log
 *.out
 *.toc
+=======
+*.exe 
+*.exe 
+>>>>>>> 586962998533774a857e7ec7799719cff35dce58
