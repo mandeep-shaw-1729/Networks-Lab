@@ -1,0 +1,229 @@
+============================================
+          Ethernet Frame Sender
+============================================
+
+Select Frame Generation Mode:
+1. Randomize
+2. Manual Choose
+Enter choice: 
+Select Channel Type:
+1. Noiseless Channels
+2. Noisy Channels
+Enter choice: 
+Select Noisy Channel Flow Control Protocol:
+1. Stop And Wait ARQ
+2. Go-Back-N ARQ
+3. Selective Repeat ARQ
+Enter choice: 
+Select Error Detection Scheme:
+1. Checksum
+2. CRC-8
+3. CRC-10
+4. CRC-16
+5. CRC-32
+Enter choice: 
+Enable channel error simulation?
+1. Yes
+2. No
+Enter choice: 
+Select Error Type:
+1. Single Bit
+2. Double Bit
+3. Odd Bit
+4. Burst
+5. Random
+Enter choice: 
+============================================
+Mode          : MANUAL CHOOSE
+Channel       : Noisy Channel
+Flow Control  : Stop-and-Wait ARQ
+============================================
+Enter input file name: 
+Connecting to 127.0.0.1:5000...
+
+============================================
+SENDING PROTOCOL CONFIGURATION FRAME
+============================================
+Channel Type  : Noisy Channel
+Flow Control  : Stop-and-Wait ARQ
+Protocol configuration acknowledged by receiver.
+Connected. ACK timeout: 1500 ms
+
+============================================
+FRAME SEQUENCE NUMBER: 0
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+The morning sun begins to warm the quiet park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 25 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+Th% morning sun begins to warm the quiet park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Timeout/no valid ACK. Retransmission 1 of 5 for sequence 0.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 34 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+The morning sun begins to warm the quie4 park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Timeout/no valid ACK. Retransmission 2 of 5 for sequence 0.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+72 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+The morning sun regins to warm the quiet park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Timeout/no valid ACK. Retransmission 3 of 5 for sequence 0.
+Channel result: NO ERROR on this attempt.
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Timeout/no valid ACK. Retransmission 4 of 5 for sequence 0.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 00 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+The.morning sun begins to warm the quiet park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Timeout/no valid ACK. Retransmission 5 of 5 for sequence 0.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6A 2E 
+Payload (Text)
+--------------------------------------------
+The morning sun begins to warm the quiet parj.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Frame sequence 0 sent (65 bytes).
+ACK timeout for sequence 0.
+
+Maximum retries reached for sequence 0. Transmission stopped.

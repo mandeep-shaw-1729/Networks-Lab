@@ -1,0 +1,661 @@
+============================================
+          Ethernet Frame Sender
+============================================
+
+Select Frame Generation Mode:
+1. Randomize
+2. Manual Choose
+Enter choice: 
+Select Channel Type:
+1. Noiseless Channels
+2. Noisy Channels
+Enter choice: 
+Select Noisy Channel Flow Control Protocol:
+1. Stop And Wait ARQ
+2. Go-Back-N ARQ
+3. Selective Repeat ARQ
+Enter choice: 
+Enter Window Size (N) [1-64]: 
+Select Error Detection Scheme:
+1. Checksum
+2. CRC-8
+3. CRC-10
+4. CRC-16
+5. CRC-32
+Enter choice: 
+Enable channel error simulation?
+1. Yes
+2. No
+Enter choice: 
+Select Error Type:
+1. Single Bit
+2. Double Bit
+3. Odd Bit
+4. Burst
+5. Random
+Enter choice: 
+============================================
+Mode          : MANUAL CHOOSE
+Channel       : Noisy Channel
+Flow Control  : Go-Back-N ARQ
+Window Size N : 4
+============================================
+Enter input file name: 
+Connecting to 127.0.0.1:5000...
+
+============================================
+SENDING PROTOCOL CONFIGURATION FRAME
+============================================
+Channel Type  : Noisy Channel
+Flow Control  : Go-Back-N ARQ
+Window Size N : 4
+Protocol configuration acknowledged by receiver.
+Connected. Go-Back-N ARQ (Window Size N = 4, Timeout = 1500 ms)
+
+============================================
+FRAME SEQUENCE NUMBER: 0
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 0
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 6D 6F 72 6E 69 6E 67 20 73 75 6E 20 
+62 65 67 69 6E 73 20 74 6F 20 77 61 72 6D 20 74 
+68 65 20 71 75 69 65 74 20 70 61 72 6B 2E 
+Payload (Text)
+--------------------------------------------
+The morning sun begins to warm the quiet park.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3DE9981E
+============================================
+Channel result: NO ERROR on this attempt.
+Frame sequence 0 sent (65 bytes).
+
+============================================
+FRAME SEQUENCE NUMBER: 1
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 1
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+41 20 73 6D 61 6C 6C 20 70 75 70 70 79 20 69 73 
+20 72 75 6E 6E 69 6E 67 20 61 63 72 6F 73 73 20 
+74 68 65 20 62 61 63 6B 79 61 72 64 21 21 
+Payload (Text)
+--------------------------------------------
+A small puppy is running across the backyard!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x56351F75
+============================================
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 1
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+41 20 73 6D 61 6C 6C 20 70 75 70 70 79 20 69 73 
+20 72 75 6E 6E 69 6E 67 20 61 63 72 6F 73 73 20 
+74 68 65 20 E2 61 63 6B 79 61 72 64 21 21 
+Payload (Text)
+--------------------------------------------
+A small puppy is running across the .ackyard!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x56351F75
+============================================
+Frame sequence 1 sent (65 bytes).
+
+============================================
+FRAME SEQUENCE NUMBER: 2
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 2
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+53 68 65 20 6C 6F 76 65 73 20 74 6F 20 70 61 69 
+6E 74 20 62 65 61 75 74 69 66 75 6C 20 6F 63 65 
+61 6E 20 6C 61 6E 64 73 63 61 70 65 73 2E 
+Payload (Text)
+--------------------------------------------
+She loves to paint beautiful ocean landscapes.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0xC2EF0CF9
+============================================
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 2
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+53 68 65 20 6C 6F 76 65 73 20 F4 6F 20 70 61 69 
+6E 74 20 62 65 61 75 74 69 66 75 6C 20 6F 63 65 
+61 6E 20 6C 61 6E 64 73 63 61 70 65 73 2E 
+Payload (Text)
+--------------------------------------------
+She loves .o paint beautiful ocean landscapes.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0xC2EF0CF9
+============================================
+Frame sequence 2 sent (65 bytes).
+
+============================================
+FRAME SEQUENCE NUMBER: 3
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 3
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+50 6C 65 61 73 65 20 72 65 6D 65 6D 62 65 72 20 
+74 6F 20 63 6C 6F 73 65 20 74 68 65 20 64 6F 6F 
+72 20 72 69 67 68 74 20 61 77 61 79 21 21 
+Payload (Text)
+--------------------------------------------
+Please remember to close the door right away!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x72267B8A
+============================================
+Channel result: NO ERROR on this attempt.
+Frame sequence 3 sent (65 bytes).
+Cumulative ACK received for sequence 0 (acknowledges frames 0 through 0).
+
+============================================
+FRAME SEQUENCE NUMBER: 4
+Error Detection: CRC-32
+Channel Error Simulation: ENABLED
+Configured Error Type: Single Bit
+
+ORIGINAL FRAME (BEFORE CHANNEL)
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 4
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 63 68 69 6C 64 72 65 6E 20 6C 6F 76 
+65 20 70 6C 61 79 69 6E 67 20 69 6E 20 74 68 65 
+20 67 72 65 65 6E 20 67 72 61 73 73 21 21 
+Payload (Text)
+--------------------------------------------
+The children love playing in the green grass!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3E66A216
+============================================
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 4
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 63 68 69 6C 64 72 65 6E 20 6C 6F 76 
+65 20 70 6C 61 79 69 6E 67 20 69 6E 20 74 68 65 
+20 67 72 75 65 6E 20 67 72 61 73 73 21 21 
+Payload (Text)
+--------------------------------------------
+The children love playing in the gruen grass!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3E66A216
+============================================
+Frame sequence 4 sent (65 bytes).
+
+Timeout waiting for ACK of sequence 1. Go-Back-N Retransmission 1 of 5 for window [1..4].
+
+Timeout/no valid ACK. Retransmission 1 of 5 for sequence 1.
+Channel result: NO ERROR on this attempt.
+Frame sequence 1 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 1 of 5 for sequence 2.
+Channel result: NO ERROR on this attempt.
+Frame sequence 2 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 1 of 5 for sequence 3.
+Channel result: NO ERROR on this attempt.
+Frame sequence 3 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 1 of 5 for sequence 4.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 4
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 63 68 69 6C 64 72 65 6E 20 6C 6F 76 
+65 20 70 6C 61 79 69 6E 67 22 69 6E 20 74 68 65 
+20 67 72 65 65 6E 20 67 72 61 73 73 21 21 
+Payload (Text)
+--------------------------------------------
+The children love playing"in the green grass!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3E66A216
+============================================
+Frame sequence 4 sent (65 bytes).
+
+Timeout waiting for ACK of sequence 1. Go-Back-N Retransmission 2 of 5 for window [1..4].
+
+Timeout/no valid ACK. Retransmission 2 of 5 for sequence 1.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 1
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+41 20 73 6D 61 6C 6C 20 70 75 70 70 79 20 69 77 
+20 72 75 6E 6E 69 6E 67 20 61 63 72 6F 73 73 20 
+74 68 65 20 62 61 63 6B 79 61 72 64 21 21 
+Payload (Text)
+--------------------------------------------
+A small puppy iw running across the backyard!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x56351F75
+============================================
+Frame sequence 1 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 2 of 5 for sequence 2.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 2
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+53 68 65 20 6C 6F 76 65 73 20 74 6F 20 70 61 69 
+6E 74 20 42 65 61 75 74 69 66 75 6C 20 6F 63 65 
+61 6E 20 6C 61 6E 64 73 63 61 70 65 73 2E 
+Payload (Text)
+--------------------------------------------
+She loves to paint Beautiful ocean landscapes.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0xC2EF0CF9
+============================================
+Frame sequence 2 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 2 of 5 for sequence 3.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 3
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+50 6C 75 61 73 65 20 72 65 6D 65 6D 62 65 72 20 
+74 6F 20 63 6C 6F 73 65 20 74 68 65 20 64 6F 6F 
+72 20 72 69 67 68 74 20 61 77 61 79 21 21 
+Payload (Text)
+--------------------------------------------
+Pluase remember to close the door right away!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x72267B8A
+============================================
+Frame sequence 3 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 2 of 5 for sequence 4.
+Channel result: NO ERROR on this attempt.
+Frame sequence 4 sent (65 bytes).
+
+Timeout waiting for ACK of sequence 1. Go-Back-N Retransmission 3 of 5 for window [1..4].
+
+Timeout/no valid ACK. Retransmission 3 of 5 for sequence 1.
+Channel result: NO ERROR on this attempt.
+Frame sequence 1 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 3 of 5 for sequence 2.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 2
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+53 68 65 20 6C 6F 76 65 73 20 74 6F 20 72 61 69 
+6E 74 20 62 65 61 75 74 69 66 75 6C 20 6F 63 65 
+61 6E 20 6C 61 6E 64 73 63 61 70 65 73 2E 
+Payload (Text)
+--------------------------------------------
+She loves to raint beautiful ocean landscapes.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0xC2EF0CF9
+============================================
+Frame sequence 2 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 3 of 5 for sequence 3.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 3
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+50 68 65 61 73 65 20 72 65 6D 65 6D 62 65 72 20 
+74 6F 20 63 6C 6F 73 65 20 74 68 65 20 64 6F 6F 
+72 20 72 69 67 68 74 20 61 77 61 79 21 21 
+Payload (Text)
+--------------------------------------------
+Phease remember to close the door right away!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x72267B8A
+============================================
+Frame sequence 3 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 3 of 5 for sequence 4.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 4
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 E3 68 69 6C 64 72 65 6E 20 6C 6F 76 
+65 20 70 6C 61 79 69 6E 67 20 69 6E 20 74 68 65 
+20 67 72 65 65 6E 20 67 72 61 73 73 21 21 
+Payload (Text)
+--------------------------------------------
+The .hildren love playing in the green grass!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3E66A216
+============================================
+Frame sequence 4 sent (65 bytes).
+
+Timeout waiting for ACK of sequence 1. Go-Back-N Retransmission 4 of 5 for window [1..4].
+
+Timeout/no valid ACK. Retransmission 4 of 5 for sequence 1.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 1
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+41 20 73 6D 61 6C 6C 20 74 75 70 70 79 20 69 73 
+20 72 75 6E 6E 69 6E 67 20 61 63 72 6F 73 73 20 
+74 68 65 20 62 61 63 6B 79 61 72 64 21 21 
+Payload (Text)
+--------------------------------------------
+A small tuppy is running across the backyard!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x56351F75
+============================================
+Frame sequence 1 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 4 of 5 for sequence 2.
+Channel result: NO ERROR on this attempt.
+Frame sequence 2 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 4 of 5 for sequence 3.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 3
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+50 6C 65 61 73 65 20 72 65 6D 65 6D 62 65 72 30 
+74 6F 20 63 6C 6F 73 65 20 74 68 65 20 64 6F 6F 
+72 20 72 69 67 68 74 20 61 77 61 79 21 21 
+Payload (Text)
+--------------------------------------------
+Please remember0to close the door right away!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x72267B8A
+============================================
+Frame sequence 3 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 4 of 5 for sequence 4.
+Channel result: NO ERROR on this attempt.
+Frame sequence 4 sent (65 bytes).
+
+Timeout waiting for ACK of sequence 1. Go-Back-N Retransmission 5 of 5 for window [1..4].
+
+Timeout/no valid ACK. Retransmission 5 of 5 for sequence 1.
+Channel result: NO ERROR on this attempt.
+Frame sequence 1 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 5 of 5 for sequence 2.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 2
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+53 68 65 20 EC 6F 76 65 73 20 74 6F 20 70 61 69 
+6E 74 20 62 65 61 75 74 69 66 75 6C 20 6F 63 65 
+61 6E 20 6C 61 6E 64 73 63 61 70 65 73 2E 
+Payload (Text)
+--------------------------------------------
+She .oves to paint beautiful ocean landscapes.
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0xC2EF0CF9
+============================================
+Frame sequence 2 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 5 of 5 for sequence 3.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 3
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+50 6C 65 61 73 65 20 72 65 6D 65 6D 62 65 72 20 
+74 6F 20 63 6C 6F 73 65 20 74 68 6D 20 64 6F 6F 
+72 20 72 69 67 68 74 20 61 77 61 79 21 21 
+Payload (Text)
+--------------------------------------------
+Please remember to close thm door right away!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x72267B8A
+============================================
+Frame sequence 3 sent (65 bytes).
+
+Timeout/no valid ACK. Retransmission 5 of 5 for sequence 4.
+
+Single Bit Error Injected.
+Channel result: ERROR INJECTED.
+Transmitted frame after corruption:
+
+============================================
+              Data Link Frame
+============================================
+Source MAC      : 00:11:22:33:44:55
+Destination MAC : 66:77:88:99:AA:BB
+Length          : 46 Bytes
+Sequence Number : 4
+
+Payload (Hex) (46 Bytes)
+--------------------------------------------
+54 68 65 20 63 68 69 6C 64 72 65 6E 20 6C 6F 76 
+65 20 70 6C 61 78 69 6E 67 20 69 6E 20 74 68 65 
+20 67 72 65 65 6E 20 67 72 61 73 73 21 21 
+Payload (Text)
+--------------------------------------------
+The children love plaxing in the green grass!!
+Padding         : 0 Bytes
+Padding (Hex)   : None
+FCS             : 0x3E66A216
+============================================
+Frame sequence 4 sent (65 bytes).
+
+Maximum retries reached for Go-Back-N window starting at sequence 1. Transmission stopped.
