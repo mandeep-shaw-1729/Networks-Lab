@@ -8,11 +8,11 @@
 \usepackage{tabularx}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{hyperref}
-\usepackage{fancyhdr}
 \usepackage{float}
+\usepackage{fancyhdr}
 \usepackage{tikz}
-\usetikzlibrary{shapes,arrows.meta,positioning,decorations.pathreplacing,calc}
+\usetikzlibrary{shapes,arrows.meta,positioning,decorations.pathreplacing,calc,backgrounds,plotmarks}
+\usepackage{hyperref}
 
 % --- Hyperref Setup ---
 \hypersetup{
@@ -79,6 +79,7 @@
 % =========================================================================
 % COVER / TITLE PAGE
 % =========================================================================
+\hypersetup{pageanchor=false}
 \begin{titlepage}
     \centering
     \vspace*{1.5cm}
@@ -105,6 +106,7 @@
     \vfill
     {\small Faculty of Engineering and Technology $\bullet$ Jadavpur University, Kolkata, India}
 \end{titlepage}
+\hypersetup{pageanchor=true}
 
 % =========================================================================
 % TABLE OF CONTENTS
@@ -122,10 +124,10 @@ In computer network architectures, physical transmission channels are inherently
 The primary objective of this assignment is to design, implement, and benchmark the three foundational flow control protocols in C over a simulated client-server network:
 \begin{enumerate}
     \item \textbf{Stop-and-Wait Protocol (Noiseless and Noisy ARQ):} Transmission of a single frame per time slot with receiver acknowledgment, idle sender waiting time, and timeout-based retransmission.
-    \item \textbf{Go-Back-N (GBN) ARQ Protocol:} Pipelined sliding-window transmission with sender window size $N$ and receiver window size $1$, utilizing cumulative acknowledgments and full-window retransmission upon frame loss.
+    \item \textbf{Go-Back-N (GBN) ARQ Scheme:} Pipelined sliding-window transmission with sender window size $N$ and receiver window size $1$, utilizing cumulative acknowledgments and full-window retransmission on frame loss.
     \item \textbf{Selective Repeat (SR) ARQ Protocol:} Full duplex sliding-window transmission with window size $N$ at both sender and receiver, utilizing independent acknowledgments, receiver buffering for out-of-order packets, and targeted retransmissions of lost frames.
     \item \textbf{Socket-Based Network Simulation:} Construction of a modular client-server socket pipeline over TCP/IP loopback, integrating 64-byte IEEE 802.3-style Ethernet framing, 32-bit CRC error detection from Assignment 1, and stochastic channel impairments (bit corruption, packet loss, and transmission delays).
-    \item \textbf{Empirical Performance Profiling:} Execution of exhaustive test cases measuring round-trip propagation times ($RTT$), protocol efficiency under error-free conditions, and resilience across error/loss probabilities ranging from $p = 0.10$ to $p = 0.50$.
+    \item \textbf{Empirical Performance Profiling:} Exhaustive benchmarking across test scenarios measuring round-trip times ($RTT$), protocol efficiency under error-free conditions, and resilience across error/loss probabilities ranging from $p = 0.10$ to $p = 0.50$.
 \end{enumerate}
 
 % =========================================================================
@@ -231,43 +233,65 @@ The system is organized into a modular client-server socket pipeline operating o
 \begin{figure}[H]
     \centering
     \begin{tikzpicture}[
-        node distance=1.1cm and 1.8cm,
-        box/.style={rectangle, draw=blue!70, fill=blue!5, thick, rounded corners, minimum height=0.7cm, minimum width=3.2cm, font=\footnotesize, align=center},
-        proc/.style={rectangle, draw=teal!70, fill=teal!5, thick, rounded corners, minimum height=0.7cm, minimum width=3.2cm, font=\footnotesize, align=center},
-        chan/.style={rectangle, draw=red!70, fill=red!5, thick, dashed, minimum height=1.0cm, minimum width=3.6cm, font=\footnotesize\bfseries, align=center},
-        arrow/.style={-Latex, thick, draw=black!70}
+        font=\footnotesize,
+        >=Latex,
+        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=2.85cm, align=center},
+        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=2.85cm, align=center},
+        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=1.15cm, text width=2.6cm, align=center, font=\scriptsize},
+        arrow/.style={->, thick, draw=black!75},
+        retarrow/.style={->, thick, draw=blue!75!black}
     ]
-        % Sender Column
-        \node[box] (input) {1. File Reader (\texttt{input.txt})};
-        \node[box, below=of input] (frame) {2. \texttt{Framing()}: Build Header \& CRC};
-        \node[proc, below=of frame] (timer) {3. \texttt{Timer()}: Record Timestamp};
-        \node[proc, below=of timer] (send) {4. \texttt{Send()}: Transmit to Socket};
+        % ==================== BACKGROUND CONTAINERS ====================
+        \begin{scope}[on background layer]
+            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (0.0, -4.9) rectangle (3.4, 5.8);
+            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (4.8, -4.9) rectangle (7.8, 5.8);
+            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (9.2, -4.9) rectangle (12.6, 5.8);
+        \end{scope}
+
+        % Container Header Labels
+        \node[font=\bfseries\small, text=blue!85!black] at (1.7, 5.45) {Sender Process (Client)};
+        \node[font=\bfseries\small, text=red!80!black]  at (6.3, 5.45) {Simulated Channel};
+        \node[font=\bfseries\small, text=teal!85!black] at (10.9, 5.45) {Receiver Process (Server)};
+
+        % ==================== SENDER (x = 1.7) ====================
+        \node[block] (input) at (1.7, 4.6) {1. File Reader (\texttt{input.txt})};
+        \node[block] (frame) at (1.7, 3.5) {2. \texttt{Framing()}: Build Header \& CRC};
+        \node[proc]  (timer) at (1.7, 2.4) {3. \texttt{Timer()}: Record Timestamp};
+        \node[proc]  (send)  at (1.7, 1.3) {4. \texttt{Send()}: Socket Dispatch};
         
-        % Channel Middle
-        \node[chan, right=of send, yshift=0.8cm] (channel) {Simulated Channel (\texttt{Channel()})\\$\bullet$ Stochastic Bit Flips\\$\bullet$ Packet Drops / Delays};
-        
-        % Receiver Column
-        \node[box, right=of channel, yshift=-0.8cm] (recv) {5. \texttt{Recv()}: Socket Ingestion};
-        \node[box, above=of recv] (check) {6. \texttt{Check()}: Verify CRC/Checksum};
-        \node[box, above=of check] (buf) {7. Buffer / Window Logic\\(GBN vs. SR Buffer)};
-        \node[box, above=of buf] (ack) {8. \texttt{Send()}: ACK Generation};
-        
-        % Sender ACK Handling
-        \node[proc, above=of input] (srecv) {9. \texttt{Recv()}: Ingest ACK};
-        \node[proc, right=of srecv] (tout) {10. \texttt{Timeout()}: Compute RTT};
-        
-        % Connections
+        \node[proc]  (srecv) at (1.7, -2.9) {9. \texttt{Recv()}: Ingest ACK (2 B)};
+        \node[proc]  (tout)  at (1.7, -4.1) {10. \texttt{Timeout()}: Slide Window};
+
+        % ==================== CHANNEL (x = 6.3) ====================
+        \node[chan] (fwd_chan) at (6.3, 1.3) {Forward Channel\\(\texttt{Channel()})\\$\bullet$ Bit Flips (CRC check)\\$\bullet$ Packet Loss / Delay};
+        \node[chan, draw=blue!70!black] (rev_chan) at (6.3, -2.9) {Reverse Channel\\(TCP Loopback)\\$\bullet$ 2-Byte ACK Delivery\\(\texttt{0xA5} + \texttt{Seq})};
+
+        % ==================== RECEIVER (x = 10.9) ====================
+        \node[block] (rrecv)  at (10.9, 1.3) {5. \texttt{Recv()}: Socket Ingestion};
+        \node[block] (check)  at (10.9, 0.05) {6. \texttt{Check()}: Verify CRC-32/FCS};
+        \node[block] (buf)    at (10.9, -1.4) {7. Buffer / Window Logic\\(GBN vs. SR Buffer)};
+        \node[block] (ack)    at (10.9, -2.9) {8. \texttt{Send()}: ACK Generation};
+
+        % ==================== FORWARD PATH ====================
         \draw[arrow] (input) -- (frame);
         \draw[arrow] (frame) -- (timer);
         \draw[arrow] (timer) -- (send);
-        \draw[arrow] (send.east) -- ++(0.5,0) |- (channel.west);
-        \draw[arrow] (channel.east) -| ++(0.5,-0.8) -- (recv.west);
-        \draw[arrow] (recv) -- (check);
-        \draw[arrow] (check) -- node[right, font=\tiny] {Valid} (buf);
+        \draw[arrow] (send) -- node[above=1pt, font=\scriptsize] {65 B Frame} (fwd_chan);
+        \draw[arrow] (fwd_chan) -- (rrecv);
+        \draw[arrow] (rrecv) -- (check);
+        \draw[arrow] (check) -- node[right=4pt, font=\scriptsize, text=teal!80!black] {Valid} (buf);
         \draw[arrow] (buf) -- (ack);
-        \draw[arrow] (ack.north) -- ++(0,0.5) -| (srecv.north);
+
+        % ==================== REVERSE / ACK PATH ====================
+        \draw[retarrow] (ack) -- node[above=1pt, font=\scriptsize] {ACK Frame} (rev_chan);
+        \draw[retarrow] (rev_chan) -- (srecv);
         \draw[arrow] (srecv) -- (tout);
-        \draw[arrow] (tout) -| (timer);
+        
+        % Feedback to Window / Timer
+        \draw[arrow, blue!75!black] (tout.west) -- ++(-0.4,0) |- 
+            node[pos=0.25, left, font=\scriptsize, align=right] {Advance Base /\\Reset Timer} 
+            (timer.west);
+
     \end{tikzpicture}
     \caption{Procedural organization and end-to-end data link flow control architecture.}
     \label{fig:arch_diagram}
@@ -300,9 +324,9 @@ To conform strictly to the assignment specifications, the data frame consists of
         \draw[decorate, decoration={brace, mirror, amplitude=5pt}, thick] (11.5,-0.1) -- (13.5,-0.1) 
             node[pos=0.5, below=6pt] {\textbf{Trailer (4 B)}};
         \draw[decorate, decoration={brace, amplitude=5pt}, thick] (0,1.1) -- (11.5,1.1) 
-            node[pos=0.5, above=6pt] {\textbf{CRC-32 / Checksum Verified Region (61 Bytes)}};
-        \draw[decorate, decoration={brace, amplitude=5pt}, thick] (0,1.8) -- (13.5,1.8) 
-            node[pos=0.5, above=6pt] {\textbf{Total Serialized Frame Length: 65 Bytes}};
+            node[pos=0.5, above=5pt] {\textbf{CRC-32 / Checksum Verified Region (61 Bytes)}};
+        \draw[decorate, decoration={brace, amplitude=5pt}, thick] (0,2.05) -- (13.5,2.05) 
+            node[pos=0.5, above=5pt] {\textbf{Total Serialized Frame Length: 65 Bytes}};
     \end{tikzpicture}
     \caption{In-memory layout and serialization structure of the Data Link Frame.}
     \label{fig:frame_layout}
@@ -432,7 +456,7 @@ if (dist < (uint8_t)windowSize) {
 To rigorously evaluate the flow control implementations as specified in the assignment guidelines, four structured test scenarios were executed:
 
 \begin{itemize}
-    \item \textbf{Test Case 1: Packet Propagation Time vs. ACK Reception Time ($RTT$ Dynamics):}
+    \item \textbf{Test Case 1: Propagation Delay vs.\ ACK Reception Time ($RTT$ Dynamics):}
     Evaluates the latency between packet transmission and ACK reception across five payload sizes ($46, 128, 512, 1024, 1500$ bytes) and four propagation delays ($5.0, 10.0, 20.0, 50.0$ ms) over a simulated 10 Mbps channel. Verifies dynamic timeout threshold computation:
     \begin{equation}
         T_{\text{out}} = 2 \cdot RTT + 5.0\text{ ms}
@@ -460,9 +484,11 @@ Table~\ref{tab:test1_rtt} summarizes the empirical timing breakdown across varyi
 \begin{table}[H]
     \centering
     \small
+    \setlength{\tabcolsep}{8pt}
     \begin{tabular}{cccccc}
         \toprule
-        \textbf{Payload (Bytes)} & $\boldsymbol{T_{\text{prop}}}$ \textbf{(ms)} & $\boldsymbol{T_{\text{tx}}}$ \textbf{Frame (ms)} & $\boldsymbol{T_{\text{tx}}}$ \textbf{ACK (ms)} & \textbf{Measured RTT (ms)} & \textbf{Timeout Threshold (ms)} \\
+        \textbf{Payload} & $\boldsymbol{T_{\text{prop}}}$ & $\boldsymbol{T_{\text{tx}}}$ \textbf{Frame} & $\boldsymbol{T_{\text{tx}}}$ \textbf{ACK} & \textbf{Measured} & \textbf{Timeout} \\
+        \textbf{(Bytes)} & \textbf{(ms)} & \textbf{(ms)} & \textbf{(ms)} & \textbf{RTT (ms)} & \textbf{Threshold (ms)} \\
         \midrule
         46   & 5.0  & 0.0520 & 0.0016 & 10.104 & 25.207 \\
         46   & 10.0 & 0.0520 & 0.0016 & 20.104 & 45.207 \\
@@ -496,48 +522,64 @@ Table~\ref{tab:test1_rtt} summarizes the empirical timing breakdown across varyi
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}
-        \draw[thick, -Latex] (0,0) -- (10.5,0) node[right, font=\footnotesize] {$T_{\text{prop}}$ (ms)};
-        \draw[thick, -Latex] (0,0) -- (0,5.5) node[above, font=\footnotesize] {Round-Trip Time $RTT$ (ms)};
+    \begin{tikzpicture}[font=\footnotesize]
+        % --- GRID & AXIS BOX ---
+        \draw[thick] (0.8, 0) rectangle (10.8, 5.3);
         
-        % Y ticks (0 to 110 ms, scale: 1 cm = 20 ms)
+        % Horizontal grid lines & Y ticks (0 to 100 ms, scale: 1 cm = 20 ms)
         \foreach \y/\val in {0/0, 1/20, 2/40, 3/60, 4/80, 5/100} {
-            \draw (0,\y) node[left, font=\scriptsize] {\val};
-            \draw[dashed, black!15] (0,\y) -- (10.0,\y);
+            \draw[dashed, black!15] (0.8, \y) -- (10.8, \y);
+            \draw (0.8, \y) -- (0.65, \y) node[left, font=\scriptsize] {\val};
         }
         
-        % X ticks (5, 10, 20, 50 ms) -> x coordinates: 1.0, 2.0, 4.0, 9.5
-        \draw (1.0, 0) node[below, font=\scriptsize] {5.0};
-        \draw (2.0, 0) node[below, font=\scriptsize] {10.0};
-        \draw (4.0, 0) node[below, font=\scriptsize] {20.0};
-        \draw (9.5, 0) node[below, font=\scriptsize] {50.0};
-        
-        % Curve 1: Payload 46 B (y = RTT/20)
-        % (1.0, 0.505), (2.0, 1.005), (4.0, 2.005), (9.5, 5.005)
-        \draw[thick, blue!80, mark=*] plot coordinates {(1.0, 0.505) (2.0, 1.005) (4.0, 2.005) (9.5, 5.005)};
-        
-        % Curve 2: Payload 1500 B
-        % (1.0, 0.563), (2.0, 1.063), (4.0, 2.063), (9.5, 5.063)
-        \draw[thick, red!80, dashed, mark=square*] plot coordinates {(1.0, 0.563) (2.0, 1.063) (4.0, 2.063) (9.5, 5.063)};
-        
-        % Legend
-        \draw[thick, blue!80] (1.5, 5.0) -- (2.5, 5.0) node[right, font=\scriptsize] {Payload = 46 Bytes};
-        \draw[thick, red!80, dashed] (5.5, 5.0) -- (6.5, 5.0) node[right, font=\scriptsize] {Payload = 1500 Bytes};
+        % Vertical grid lines & X ticks (scale: 1 cm = 5 ms -> coords 0.8 to 10.8)
+        \foreach \x/\val in {1.8/5.0, 2.8/10.0, 4.8/20.0, 6.8/30.0, 8.8/40.0, 10.8/50.0} {
+            \draw[dashed, black!15] (\x, 0) -- (\x, 5.3);
+            \draw (\x, 0) -- (\x, -0.15) node[below, font=\scriptsize] {\val};
+        }
+
+        % Axis Labels
+        \node[below=14pt, font=\small\bfseries] at (5.8, 0) {Channel Propagation Delay $T_{\text{prop}}$ (ms)};
+        \node[above=22pt, font=\small\bfseries, rotate=90] at (0.1, 2.65) {Round-Trip Time $RTT$ (ms)};
+
+        % --- PLOTS ---
+        % Payload 46 B: (5, 10.104) -> (1.8, 0.505), (10, 20.104) -> (2.8, 1.005), (20, 40.104) -> (4.8, 2.005), (50, 100.104) -> (10.8, 5.005)
+        \draw[thick, blue!80!black, mark=*, mark size=1.8pt] plot coordinates {
+            (1.8, 0.505) (2.8, 1.005) (4.8, 2.005) (10.8, 5.005)
+        };
+
+        % Payload 1500 B: (5, 11.267) -> (1.8, 0.563), (10, 21.267) -> (2.8, 1.063), (20, 41.267) -> (4.8, 2.063), (50, 101.267) -> (10.8, 5.063)
+        \draw[thick, red!80!black, dashed, mark=square*, mark size=1.8pt] plot coordinates {
+            (1.8, 0.563) (2.8, 1.063) (4.8, 2.063) (10.8, 5.063)
+        };
+
+        % --- LEGEND BOX (Top-Left) ---
+        \draw[fill=white, draw=black!40, rounded corners=2pt, opacity=0.95] (1.2, 3.8) rectangle (5.6, 5.05);
+        \begin{scope}[font=\scriptsize]
+            \draw[thick, blue!80!black, mark=*, mark size=1.5pt] (1.4, 4.65) -- (2.2, 4.65);
+            \node[right] at (2.3, 4.65) {Payload = 46 Bytes};
+            
+            \draw[thick, red!80!black, dashed, mark=square*, mark size=1.5pt] (1.4, 4.15) -- (2.2, 4.15);
+            \node[right] at (2.3, 4.15) {Payload = 1500 Bytes};
+        \end{scope}
+
     \end{tikzpicture}
     \caption{Round-Trip Time ($RTT$) as a function of propagation delay $T_{\text{prop}}$.}
     \label{fig:rtt_plot}
 \end{figure}
 
-\subsection{Test Case 2: Protocol Efficiency without Error or Lost Frame ($p = 0.0$)}
+\subsection{Test Case 2: Protocol Efficiency without Error or Lost Frame \texorpdfstring{($p = 0.0$)}{(p = 0.0)}}
 
 Table~\ref{tab:test2_noiseless} compares the baseline performance of Stop-and-Wait, Go-Back-N, and Selective Repeat under ideal channel conditions ($10{,}000$ transmitted frames, $T_{\text{prop}} = 10\text{ ms}$).
 
 \begin{table}[H]
     \centering
     \small
+    \setlength{\tabcolsep}{7pt}
     \begin{tabular}{lccccc}
         \toprule
-        \textbf{Protocol Scheme} & \textbf{Window Size ($N$)} & \textbf{Frames Delivered} & \textbf{Total Transmitted} & \textbf{Efficiency (\%)} & \textbf{Avg. Delay / Frame} \\
+        \textbf{Protocol Scheme} & \textbf{Window} & \textbf{Frames} & \textbf{Total} & \textbf{Efficiency} & \textbf{Avg. Delay} \\
+        & \textbf{Size} ($\boldsymbol{N}$) & \textbf{Delivered} & \textbf{Transmitted} & \textbf{(\%)} & \textbf{/ Frame} \\
         \midrule
         Stop-and-Wait        & 1  & 10,000 & 10,000 & 100.00\% & 20.650 ms \\
         \midrule
@@ -556,16 +598,17 @@ Table~\ref{tab:test2_noiseless} compares the baseline performance of Stop-and-Wa
     \label{tab:test2_noiseless}
 \end{table}
 
-\subsection{Test Case 3: Protocol Efficiency across Error Probabilities ($p = 0.10$ to $0.50$)}
+\subsection{Test Case 3: Protocol Efficiency across Error Probabilities \texorpdfstring{($p = 0.10$ to $0.50$)}{(p = 0.10 to 0.50)}}
 
 Table~\ref{tab:test3_noisy} records the empirical transmission efficiency across increasing channel error probabilities, while Table~\ref{tab:test3_overhead} presents the detailed retransmission breakdown.
 
 \begin{table}[H]
     \centering
     \small
+    \setlength{\tabcolsep}{5pt}
     \begin{tabular}{cccccc}
         \toprule
-        \textbf{Error Prob. ($p$)} & \textbf{Stop-and-Wait} & \textbf{GBN ($N=4$)} & \textbf{GBN ($N=8$)} & \textbf{SR ($N=4$)} & \textbf{SR ($N=8$)} \\
+        \shortstack{\textbf{Error}\\\textbf{Prob.} $\boldsymbol{p}$} & \textbf{Stop-and-Wait} & \textbf{GBN} ($\boldsymbol{N=4}$) & \textbf{GBN} ($\boldsymbol{N=8}$) & \textbf{SR} ($\boldsymbol{N=4}$) & \textbf{SR} ($\boldsymbol{N=8}$) \\
         \midrule
         0.10 & 85.72\% & 60.00\% & 42.51\% & 85.73\% & 86.21\% \\
         0.20 & 71.98\% & 39.45\% & 24.42\% & 71.68\% & 71.79\% \\
@@ -581,9 +624,10 @@ Table~\ref{tab:test3_noisy} records the empirical transmission efficiency across
 \begin{table}[H]
     \centering
     \small
+    \setlength{\tabcolsep}{4.5pt}
     \begin{tabular}{ccccccc}
         \toprule
-        \textbf{Prob ($p$)} & \textbf{Protocol Scheme} & \textbf{Window ($N$)} & \textbf{Total Tx} & \textbf{Retransmissions} & \textbf{Timeouts} & \textbf{Efficiency} \\
+        \textbf{Prob} $\boldsymbol{p}$ & \textbf{Protocol Scheme} & \textbf{Window} ($\boldsymbol{N}$) & \textbf{Total Tx} & \shortstack{\textbf{Retrans-}\\\textbf{missions}} & \textbf{Timeouts} & \textbf{Efficiency} \\
         \midrule
         0.10 & Stop-and-Wait    & 1 & 11,637 & 1,637  & 1,637  & 85.93\% \\
         0.10 & Go-Back-N        & 4 & 16,696 & 6,696  & 1,674  & 59.89\% \\
@@ -612,48 +656,77 @@ Table~\ref{tab:test3_noisy} records the empirical transmission efficiency across
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}
-        \draw[thick, -Latex] (0,0) -- (10.5,0) node[right, font=\footnotesize] {Error Probability ($p$)};
-        \draw[thick, -Latex] (0,0) -- (0,5.5) node[above, font=\footnotesize] {Protocol Efficiency (\%)};
+    \begin{tikzpicture}[font=\footnotesize]
+        % --- GRID & AXIS BOX ---
+        \draw[thick] (1.0, 0) rectangle (10.5, 5.2);
         
-        % Y ticks (0 to 100%, scale: 1 cm = 20%)
+        % Horizontal grid lines & Y ticks
         \foreach \y/\val in {0/0, 1/20, 2/40, 3/60, 4/80, 5/100} {
-            \draw (0,\y) node[left, font=\scriptsize] {\val\%};
-            \draw[dashed, black!15] (0,\y) -- (10.0,\y);
+            \draw[dashed, black!15] (1.0, \y) -- (10.5, \y);
+            \draw (1.0, \y) -- (0.85, \y) node[left, font=\scriptsize] {\val\%};
         }
         
-        % X ticks (0.1 to 0.5) -> coords: 1.8, 3.6, 5.4, 7.2, 9.0
-        \draw (1.8, 0) node[below, font=\scriptsize] {0.10};
-        \draw (3.6, 0) node[below, font=\scriptsize] {0.20};
-        \draw (5.4, 0) node[below, font=\scriptsize] {0.30};
-        \draw (7.2, 0) node[below, font=\scriptsize] {0.40};
-        \draw (9.0, 0) node[below, font=\scriptsize] {0.50};
-        
-        % Stop-and-Wait (blue)
-        \draw[thick, blue!80, mark=*] plot coordinates {
-            (1.8, 4.286) (3.6, 3.599) (5.4, 2.978) (7.2, 2.381) (9.0, 1.887)
+        % Vertical grid lines & X ticks
+        \foreach \x/\val in {2.0/0.10, 4.0/0.20, 6.0/0.30, 8.0/0.40, 10.0/0.50} {
+            \draw[dashed, black!15] (\x, 0) -- (\x, 5.2);
+            \draw (\x, 0) -- (\x, -0.15) node[below, font=\scriptsize] {\val};
+        }
+
+        % Axis Labels
+        \node[below=14pt, font=\small\bfseries] at (5.75, 0) {Channel Error Probability ($p$)};
+        \node[font=\small\bfseries, rotate=90] at (-0.2, 2.6) {Protocol Efficiency (\%)};
+
+        % --- PLOTS ---
+        % 1. Stop-and-Wait (blue solid, circle)
+        \draw[thick, blue!80!black, mark=*, mark size=1.8pt] plot coordinates {
+            (2.0, 4.286) (4.0, 3.599) (6.0, 2.979) (8.0, 2.382) (10.0, 1.887)
         };
-        
-        % GBN N=4 (red dashed)
-        \draw[thick, red!80, dashed, mark=square*] plot coordinates {
-            (1.8, 3.000) (3.6, 1.972) (5.4, 1.353) (7.2, 0.941) (9.0, 0.646)
+
+        % 2. Selective Repeat N=4 (teal dashed, diamond)
+        \draw[thick, teal!80!black, dashed, mark=diamond*, mark size=2.2pt] plot coordinates {
+            (2.0, 4.287) (4.0, 3.584) (6.0, 2.971) (8.0, 2.380) (10.0, 1.875)
         };
-        
-        % GBN N=8 (orange dotted)
-        \draw[thick, orange!90!black, dotted, mark=triangle*] plot coordinates {
-            (1.8, 2.125) (3.6, 1.221) (5.4, 0.767) (7.2, 0.524) (9.0, 0.349)
+
+        % 3. Selective Repeat N=8 (violet dotted, pentagon)
+        \draw[thick, violet!80!black, dotted, mark=pentagon*, mark size=2.0pt] plot coordinates {
+            (2.0, 4.311) (4.0, 3.590) (6.0, 2.984) (8.0, 2.402) (10.0, 1.885)
         };
-        
-        % Selective Repeat N=4 (teal)
-        \draw[thick, teal!90!black, mark=diamond*] plot coordinates {
-            (1.8, 4.286) (3.6, 3.584) (5.4, 2.970) (7.2, 2.380) (9.0, 1.875)
+
+        % 4. Go-Back-N N=4 (red densely dashed, square)
+        \draw[thick, red!80!black, densely dashed, mark=square*, mark size=1.8pt] plot coordinates {
+            (2.0, 3.000) (4.0, 1.973) (6.0, 1.354) (8.0, 0.942) (10.0, 0.647)
         };
+
+        % 5. Go-Back-N N=8 (orange dashdotted, triangle)
+        \draw[thick, orange!90!black, dashdotted, mark=triangle*, mark size=2.0pt] plot coordinates {
+            (2.0, 2.126) (4.0, 1.221) (6.0, 0.768) (8.0, 0.525) (10.0, 0.350)
+        };
+
+        % --- LEGEND BOX (Top-Right) ---
+        \draw[fill=white, draw=black!40, rounded corners=2pt, opacity=0.95] (5.9, 3.05) rectangle (10.45, 5.08);
         
-        % Legend
-        \draw[thick, blue!80] (1.0, 5.2) -- (1.6, 5.2) node[right, font=\scriptsize] {Stop-and-Wait};
-        \draw[thick, red!80, dashed] (3.6, 5.2) -- (4.2, 5.2) node[right, font=\scriptsize] {GBN ($N=4$)};
-        \draw[thick, orange!90!black, dotted] (6.0, 5.2) -- (6.6, 5.2) node[right, font=\scriptsize] {GBN ($N=8$)};
-        \draw[thick, teal!90!black] (8.2, 5.2) -- (8.8, 5.2) node[right, font=\scriptsize] {SR ($N=4$)};
+        \begin{scope}[font=\scriptsize]
+            % Entry 1: S&W
+            \draw[thick, blue!80!black, mark=*, mark size=1.5pt] (6.05, 4.8) -- (6.65, 4.8);
+            \node[right] at (6.7, 4.8) {Stop-and-Wait ($N=1$)};
+            
+            % Entry 2: SR N=4
+            \draw[thick, teal!80!black, dashed, mark=diamond*, mark size=1.8pt] (6.05, 4.4) -- (6.65, 4.4);
+            \node[right] at (6.7, 4.4) {Selective Repeat ($N=4$)};
+
+            % Entry 3: SR N=8
+            \draw[thick, violet!80!black, dotted, mark=pentagon*, mark size=1.6pt] (6.05, 4.0) -- (6.65, 4.0);
+            \node[right] at (6.7, 4.0) {Selective Repeat ($N=8$)};
+            
+            % Entry 4: GBN N=4
+            \draw[thick, red!80!black, densely dashed, mark=square*, mark size=1.5pt] (6.05, 3.6) -- (6.65, 3.6);
+            \node[right] at (6.7, 3.6) {Go-Back-N ($N=4$)};
+            
+            % Entry 5: GBN N=8
+            \draw[thick, orange!90!black, dashdotted, mark=triangle*, mark size=1.6pt] (6.05, 3.25) -- (6.65, 3.25);
+            \node[right] at (6.7, 3.25) {Go-Back-N ($N=8$)};
+        \end{scope}
+
     \end{tikzpicture}
     \caption{Protocol efficiency versus channel error probability $p$ ($10{,}000$ frame trials).}
     \label{fig:efficiency_plot}
@@ -670,7 +743,7 @@ The compiled binaries \texttt{receiver.exe} and \texttt{sender.exe} were execute
 
 Listing~\ref{lst:saw_trace} demonstrates how a single-bit error injected during the transmission of sequence 0 corrupts the frame, causes the receiver to withhold its ACK, triggers a 1500 ms sender timeout, and culminates in a successful retransmission.
 
-\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Stop-and-Wait ARQ error recovery.}]
+\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Stop-and-Wait ARQ error recovery.}, label={lst:saw_trace}]
 ============================================
 FRAME SEQUENCE NUMBER: 0
 Error Detection: CRC-32 | Channel Error Simulation: ENABLED
@@ -695,7 +768,7 @@ Frame successfully acknowledged.
 
 Listing~\ref{lst:gbn_trace} captures the Go-Back-N window behavior ($N=4$). Frame 1 encounters a bit error. The receiver silently drops frame 1 and subsequent out-of-order frames 2, 3, and 4. Upon timeout on frame 1, the sender retransmits the \textbf{entire window} ($[1..4]$).
 
-\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Go-Back-N ARQ full-window retransmission.}]
+\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Go-Back-N ARQ full-window retransmission.}, label={lst:gbn_trace}]
 Frame sequence 0 sent (65 bytes) -> Cumulative ACK received for sequence 0.
 Frame sequence 1 sent (65 bytes) -> [ERROR INJECTED: Bit flip in payload]
 Frame sequence 2 sent (65 bytes) -> [Receiver discards: Out-of-order]
@@ -716,7 +789,7 @@ Window slides to base 4.
 
 Listing~\ref{lst:sr_trace} illustrates Selective Repeat ($N=4$). Frame 3 is corrupted. Correctly received frames 4 and 5 are buffered in the receiver's window and independently acknowledged. Upon timeout, \textbf{only} frame 3 is retransmitted, after which all buffered frames are delivered to the application in sorted order.
 
-\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Selective Repeat selective retransmission.}]
+\begin{lstlisting}[style=hexstyle, caption={Live socket execution trace: Selective Repeat selective retransmission.}, label={lst:sr_trace}]
 Frame sequence 3 sent (65 bytes) -> [ERROR INJECTED: Corrupted, discarded]
 Frame sequence 4 sent (65 bytes) -> Receiver buffers frame 4; sends ACK 4.
 Selective ACK received for sequence 4 (Window base remains at 3).
