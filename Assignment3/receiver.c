@@ -1,10 +1,11 @@
-/* channel_receiver.c - Interactive Shared Channel & Receiver Emulator */
+/* channel_receiver.c - Locks CSMA Protocol from First Sender for All Subsequent Senders */
 #include "csma_common.h"
 
 typedef struct {
     sock_t        sock;
     int           active;
     int           registered;
+    int           waiting_for_proto;
     char          name[STATION_NAME_LEN];
     int           transmitting;
     unsigned char raw_buf[FRAME_SIZE];
@@ -44,7 +45,6 @@ int main(int argc, char *argv[]) {
         if (argc > 2) noise_prob = atof(argv[2]);
         if (argc > 3) verbose_frames = atoi(argv[3]);
     } else {
-        /* Interactive Prompt 1: Number of Expecting Stations */
         printf("Enter number of expecting stations (1 - %d): ", MAX_STATIONS);
         fflush(stdout);
         if (scanf("%d", &expected_stations) != 1 || expected_stations < 1) {
@@ -52,7 +52,6 @@ int main(int argc, char *argv[]) {
         }
         if (expected_stations > MAX_STATIONS) expected_stations = MAX_STATIONS;
 
-        /* Optional Interactive Prompt 2: Frame detail view */
         printf("Display full 65-byte frame details on receive? (0 = No, 1 = Yes): ");
         fflush(stdout);
         if (scanf("%d", &verbose_frames) != 1) {
@@ -92,7 +91,10 @@ int main(int argc, char *argv[]) {
     memset(clients, 0, sizeof(clients));
     for (int i = 0; i < MAX_STATIONS; i++) clients[i].sock = INVALID_SOCKET;
 
-    ChannelState channel_state = CH_IDLE;
+    ChannelState channel_state   = CH_IDLE;
+    CSMAProtocol locked_protocol = PROTO_UNSET;
+    int proto_chooser_slot       = -1;
+
     double state_end_time = 0.0;
     double sim_start_time = 0.0;
 
@@ -176,6 +178,7 @@ int main(int argc, char *argv[]) {
                         clients[i].sock = cs;
                         clients[i].active = 1;
                         clients[i].registered = 0;
+                        clients[i].waiting_for_proto = 0;
                         snprintf(clients[i].name, STATION_NAME_LEN, "Slot-%d", i + 1);
                         clients[i].transmitting = 0;
                         stations_connected++;
@@ -185,7 +188,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        /* 3. Process Station Registration, Carrier Sense & Frame Transmissions */
+        /* 3. Process Station Registration, Protocol Lock, Carrier Sense & Transmissions */
         for (int i = 0; i < MAX_STATIONS; i++) {
             if (!clients[i].active || !FD_ISSET(clients[i].sock, &readfds)) continue;
 
@@ -203,9 +206,45 @@ int main(int argc, char *argv[]) {
                     name_buf[STATION_NAME_LEN - 1] = '\0';
                     strncpy(clients[i].name, (const char *)name_buf, STATION_NAME_LEN);
                     clients[i].registered = 1;
-                    if (sim_start_time == 0.0) sim_start_time = get_time_ms();
-                    printf("[CHANNEL] Station \"%s\" registered (%d/%d connected)\n",
+                    printf("[CHANNEL] Station \"%s\" connected (%d/%d expected)\n",
                            clients[i].name, stations_connected, expected_stations);
+
+                    if (locked_protocol == PROTO_UNSET && proto_chooser_slot == -1) {
+                        /* First station gets to choose the protocol for everyone */
+                        proto_chooser_slot = i;
+                        uint8_t sync[2] = { MSG_PROTO_SYNC, (uint8_t)PROTO_UNSET };
+                        send(clients[i].sock, (const char *)sync, 2, 0);
+                        printf("[CHANNEL] Waiting for first station (\"%s\") to select CSMA protocol...\n",
+                               clients[i].name);
+                    } else if (locked_protocol != PROTO_UNSET) {
+                        /* Protocol is already locked; immediately inform this station */
+                        uint8_t sync[2] = { MSG_PROTO_SYNC, (uint8_t)locked_protocol };
+                        send(clients[i].sock, (const char *)sync, 2, 0);
+                        printf("[CHANNEL] Assigned locked protocol [%s] to Station \"%s\"\n",
+                               getProtocolName(locked_protocol), clients[i].name);
+                    } else {
+                        /* First station is still at the menu; queue this station until chosen */
+                        clients[i].waiting_for_proto = 1;
+                    }
+                }
+            }
+            else if (opcode == MSG_SET_PROTO) {
+                unsigned char chosen = 0;
+                if (recv_exact(clients[i].sock, &chosen, 1) == 0) {
+                    locked_protocol = (CSMAProtocol)chosen;
+                    printf("[CHANNEL] Protocol LOCKED to [%s] by first station \"%s\"!\n",
+                           getProtocolName(locked_protocol), clients[i].name);
+
+                    /* Release any other stations that registered while first station was choosing */
+                    for (int k = 0; k < MAX_STATIONS; k++) {
+                        if (clients[k].active && clients[k].waiting_for_proto) {
+                            uint8_t sync[2] = { MSG_PROTO_SYNC, (uint8_t)locked_protocol };
+                            send(clients[k].sock, (const char *)sync, 2, 0);
+                            clients[k].waiting_for_proto = 0;
+                            printf("[CHANNEL] Assigned locked protocol [%s] to Station \"%s\"\n",
+                                   getProtocolName(locked_protocol), clients[k].name);
+                        }
+                    }
                 }
             }
             else if (opcode == MSG_SENSE_REQ) {
@@ -233,13 +272,11 @@ int main(int argc, char *argv[]) {
                     channel_state = CH_COLLISION;
                     state_end_time = now + JAM_TIME_MS;
 
-                    /* Physically corrupt the colliding frame using your error.c burst error */
                     injectBurstError(&clients[i].frame, 16);
 
                     printf("[%.1f ms] [CH: %s -> COLLISION!] Station \"%s\" collided on medium! (Total Collisions: %d)\n",
                            now - sim_start_time, state_str(prev_state), clients[i].name, total_collisions);
 
-                    /* Broadcast Collision / Jam signal (0xFE) to all transmitting stations */
                     uint8_t jam[2] = { MSG_COLLISION, (uint8_t)CH_COLLISION };
                     for (int k = 0; k < MAX_STATIONS; k++) {
                         if (clients[k].active && clients[k].transmitting) {
@@ -268,6 +305,7 @@ int main(int argc, char *argv[]) {
     double throughput_kbps = (total_frames_delivered * FRAME_SIZE * 8.0) / (total_time_s * 1000.0);
 
     printf("\n================ CHANNEL SUMMARY ================\n");
+    printf("Locked Protocol        : %s\n", getProtocolName(locked_protocol));
     printf("Contending Stations    : %d\n", expected_stations);
     printf("Frames Delivered (65B) : %d\n", total_frames_delivered);
     printf("Total Collisions       : %d\n", total_collisions);

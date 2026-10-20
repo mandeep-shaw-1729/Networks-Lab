@@ -1,4 +1,4 @@
-/* station_sender.c - Interactive Station Process using fileio.c, frame.c, and crc.c */
+/* station_sender.c - First Sender Chooses Protocol; Subsequent Senders Inherit It */
 #include "csma_common.h"
 
 /* Hash station name string/integer into a unique byte for Source MAC & RNG seed */
@@ -133,50 +133,16 @@ int main(int argc, char *argv[]) {
     printf("   IEEE 802.3 CSMA STATION TRANSMITTER (CLIENT)\n");
     printf("=================================================================\n");
 
-    if (argc >= 3) {
+    /* Step 1: Prompt for Station Name */
+    if (argc >= 2) {
         strncpy(stationName, argv[1], STATION_NAME_LEN - 1);
-        protoChoice = atoi(argv[2]);
-        if (argc > 3) p_prob = atof(argv[3]);
     } else {
-        /* Interactive Prompt 1: Station Name (integer or string) */
         printf("Enter Station Name (integer or string, e.g., 1 or Station_A): ");
         fflush(stdout);
         if (scanf("%31s", stationName) != 1) {
             strcpy(stationName, "Station_1");
         }
-
-        /* Interactive Prompt 2: Choose CSMA Protocol */
-        printf("\nSelect CSMA Access Control Protocol:\n");
-        printf("  1. Non-Persistent CSMA\n");
-        printf("  2. 1-Persistent CSMA\n");
-        printf("  3. p-Persistent CSMA\n");
-        printf("  4. CSMA/CD (with Collision Detection)\n");
-        printf("Enter choice (1-4): ");
-        fflush(stdout);
-        if (scanf("%d", &protoChoice) != 1 || protoChoice < 1 || protoChoice > 4) {
-            protoChoice = 4;
-        }
-
-        if (protoChoice == PROTO_P_PERSISTENT) {
-            printf("Enter persistence probability p (0.05 to 1.0, e.g., 0.25): ");
-            fflush(stdout);
-            if (scanf("%lf", &p_prob) != 1 || p_prob <= 0.0 || p_prob > 1.0) {
-                p_prob = 0.25;
-            }
-        }
     }
-
-    CSMAProtocol proto = (CSMAProtocol)protoChoice;
-    uint8_t macId = hashStationName(stationName);
-    srand((unsigned int)(time(NULL) ^ (macId * 7919) ^ (unsigned int)get_time_ms()));
-
-    printf("\n-----------------------------------------------------------------\n");
-    printf(" Station Name : \"%s\" (MAC Suffix: 0x%02X)\n", stationName, macId);
-    printf(" Protocol     : %s\n", getProtocolName(proto));
-    if (proto == PROTO_P_PERSISTENT) {
-        printf(" p Value      : %.2f\n", p_prob);
-    }
-    printf("-----------------------------------------------------------------\n\n");
 
 #ifdef _WIN32
     WSADATA wsa;
@@ -190,7 +156,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Connect to Shared Channel Server after prompts are completed */
+    /* Step 2: Connect to Shared Channel & Register Station Name */
     sock_t sock = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server;
     memset(&server, 0, sizeof(server));
@@ -204,12 +170,75 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    /* Register Station Name with Channel Server */
     unsigned char regPkt[1 + STATION_NAME_LEN];
     regPkt[0] = MSG_REGISTER;
     memset(&regPkt[1], 0, STATION_NAME_LEN);
     strncpy((char *)&regPkt[1], stationName, STATION_NAME_LEN - 1);
     send(sock, (const char *)regPkt, sizeof(regPkt), 0);
+
+    /* Step 3: Receive Protocol Lock Status from Channel Server */
+    uint8_t syncResp[2] = {0, 0};
+    if (recv(sock, (char *)syncResp, 2, 0) != 2 || syncResp[0] != MSG_PROTO_SYNC) {
+        fprintf(stderr, "[Station \"%s\"] Failed to synchronize protocol with channel.\n", stationName);
+        closeInputFile(fp);
+        CLOSESOCK(sock);
+        return 1;
+    }
+
+    CSMAProtocol lockedProto = (CSMAProtocol)syncResp[1];
+    CSMAProtocol proto = PROTO_CSMA_CD;
+
+    if (lockedProto == PROTO_UNSET) {
+        /* This is the FIRST sender: ask it to choose the protocol for all stations */
+        if (argc >= 3) {
+            protoChoice = atoi(argv[2]);
+        } else {
+            printf("\n[First Station] Select CSMA Protocol (locks for all stations):\n");
+            printf("  1. Non-Persistent CSMA\n");
+            printf("  2. 1-Persistent CSMA\n");
+            printf("  3. p-Persistent CSMA\n");
+            printf("  4. CSMA/CD (with Collision Detection)\n");
+            printf("Enter choice (1-4): ");
+            fflush(stdout);
+            if (scanf("%d", &protoChoice) != 1 || protoChoice < 1 || protoChoice > 4) {
+                protoChoice = 4;
+            }
+        }
+        proto = (CSMAProtocol)protoChoice;
+
+        /* Inform Channel Server to lock this protocol for all subsequent stations */
+        uint8_t setPkt[2] = { MSG_SET_PROTO, (uint8_t)proto };
+        send(sock, (const char *)setPkt, 2, 0);
+    } else {
+        /* Subsequent sender: automatically inherit the first sender's protocol */
+        proto = lockedProto;
+        printf("\n[Channel Sync] Protocol Locked by First Station: %s\n", getProtocolName(proto));
+    }
+
+    /* Step 4: If protocol is p-Persistent, EVERY station gets to set its own p value */
+    if (proto == PROTO_P_PERSISTENT) {
+        if (argc >= 4) {
+            p_prob = atof(argv[3]);
+        } else {
+            printf("Enter persistence probability p for Station \"%s\" (0.05 to 1.0, e.g., 0.25): ",
+                   stationName);
+            fflush(stdout);
+            if (scanf("%lf", &p_prob) != 1 || p_prob <= 0.0 || p_prob > 1.0) {
+                p_prob = 0.25;
+            }
+        }
+    }
+
+    uint8_t macId = hashStationName(stationName);
+    srand((unsigned int)(time(NULL) ^ (macId * 7919) ^ (unsigned int)get_time_ms()));
+
+    printf("\n-----------------------------------------------------------------\n");
+    printf(" Station Name : \"%s\" (MAC Suffix: 0x%02X)\n", stationName, macId);
+    printf(" Protocol     : %s\n", getProtocolName(proto));
+    if (proto == PROTO_P_PERSISTENT) {
+        printf(" p Value      : %.2f\n", p_prob);
+    }
+    printf("-----------------------------------------------------------------\n\n");
 
     unsigned char payloadBuf[PAYLOAD_SIZE];
     uint16_t payloadLen = 0;
@@ -241,6 +270,9 @@ int main(int argc, char *argv[]) {
     if (seqNo > 0) {
         printf("\n================ STATION \"%s\" SUMMARY ================\n", stationName);
         printf("Protocol Used          : %s\n", getProtocolName(proto));
+        if (proto == PROTO_P_PERSISTENT) {
+            printf("Persistence Prob (p)   : %.2f\n", p_prob);
+        }
         printf("Total Frames Sent      : %u\n", seqNo);
         printf("Total Collisions       : %d\n", total_collisions);
         printf("Average Frame Delay    : %.2f ms\n", total_delay_ms / seqNo);

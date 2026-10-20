@@ -56,6 +56,7 @@ typedef enum {
 
 /* CSMA Protocol Modes */
 typedef enum {
+    PROTO_UNSET          = 0,
     PROTO_NON_PERSISTENT = 1,
     PROTO_1_PERSISTENT   = 2,
     PROTO_P_PERSISTENT   = 3,
@@ -65,6 +66,8 @@ typedef enum {
 /* Control Packet Opcodes between Station and Shared Channel */
 typedef enum {
     MSG_REGISTER     = 0x05, /* Station -> Channel: Register station name string */
+    MSG_PROTO_SYNC   = 0x06, /* Channel -> Station: [0x06, locked_proto] (0 if first sender) */
+    MSG_SET_PROTO    = 0x07, /* First Station -> Channel: [0x07, chosen_proto] */
     MSG_SENSE_REQ    = 0x10, /* Station -> Channel: Sense carrier state */
     MSG_SENSE_RESP   = 0x11, /* Channel -> Station: Replies CH_IDLE / CH_BUSY / CH_COLLISION */
     MSG_TX_START     = 0x20, /* Station -> Channel: Transmit 65-byte packed EthernetFrame */
@@ -87,7 +90,7 @@ static inline const char* getProtocolName(CSMAProtocol proto) {
         case PROTO_1_PERSISTENT:   return "1-Persistent CSMA";
         case PROTO_P_PERSISTENT:   return "p-Persistent CSMA";
         case PROTO_CSMA_CD:        return "CSMA/CD (Collision Detection)";
-        default:                   return "Unknown Protocol";
+        default:                   return "Unset";
     }
 }
 
