@@ -14,7 +14,7 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{microtype}
-\usetikzlibrary{calc,shapes,arrows.meta,positioning,backgrounds}
+\usetikzlibrary{calc,shapes,arrows.meta,positioning,backgrounds,decorations.pathreplacing}
 \pgfplotsset{compat=1.18}
 
 % --- Hyperref Setup ---
@@ -171,6 +171,12 @@ Under light traffic, 1-Persistent CSMA incurs zero unnecessary idle waiting time
 \begin{equation}
     S_{\text{1-Pers}} = \frac{G [1 + G + a G (1 + G + \frac{a G}{2})] e^{-G(1+2a)}}{G(1 + 2a) - (1 - e^{-a G}) + (1 + a G) e^{-G(1+a)}}
 \end{equation}
+But,in practical scenarios where the physical distance between nodes is short or the frame size is large, making the propagation delay $a \to 0$.
+
+Substituting $a = 0$ into the equation yields a much simpler formula:
+\begin{equation}
+    S_{\text{1-Pers}} = \frac{G [1 + G] e^{-G}}{G+ e^{-G}}
+\end{equation}
 Under heavy traffic ($G \gg 1$), $S_{\text{1-Pers}} \to 0$ due to catastrophic collision cascades.
 
 \subsection{\texorpdfstring{$p$-Persistent}{p-Persistent} CSMA and Slotted Arbitration}
@@ -242,11 +248,26 @@ The medium access emulation environment is structured as a client-server socket 
             \textbf{Shared Channel}\\[0.1cm]
             \textbf{Server Emulator}\\[0.2cm]
             \footnotesize State Machine:\\[0.1cm]
-            \texttt{[IDLE]} $\leftrightarrow$ \texttt{[BUSY]}\\[0.1cm]
-            $\updownarrow$\\[0.1cm]
-            \texttt{[COLLISION]}\\[0.2cm]
-            \footnotesize CRC-32 Check $\bullet$ Jamming
+            \makebox[4.0cm]{% Creates a stable, fixed horizontal workspace
+                \begin{tabular}{c@{\hspace{0.8cm}}c}
+                    \texttt{[IDLE]} & \texttt{[BUSY]} \\[0.6cm]
+                    \multicolumn{2}{c}{\texttt{[COLLISION]}}
+                \end{tabular}%
+            }%
+            % Add explicit decorative arrows anchored to the parent node afterward
+            \footnotesize \\[0.3cm] CRC-32 Check $\bullet$ Jamming
         };
+
+% Draw the triangular connection paths directly over the text nodes outside the content block
+\path (channel.center) ++(-0.5cm, 0cm) coordinate (A)  % Near IDLE
+      (channel.center) ++(0.5cm, 0cm)  coordinate (B)  % Near BUSY
+      (channel.center) ++(0.0cm, -0.7cm)  coordinate (C); % Near COLLISION
+
+\draw[<->, thick, >=stealth, shorten >=2pt, shorten <=2pt] (A) -- (B);
+\draw[<-, thick, >=stealth, shorten >=2pt, shorten <=2pt] (A) -- (C);
+\draw[->, thick, >=stealth, shorten >=2pt, shorten <=2pt] (B) -- (C);
+
+
         
         % Receiver / Output
         \node[box, right=2.8cm of channel] (rx) {\textbf{Receiver Module}\\\footnotesize Frame Unpack\\FCS Verification\\ACK Generation};
@@ -268,7 +289,7 @@ The medium access emulation environment is structured as a client-server socket 
 \end{figure}
 
 \subsection{Frame Structure and In-Memory Layout}
-Conforming strictly to Assignments 1 and 2, every transmission uses a fixed 65-byte Ethernet-style frame consisting of a 15-byte header, a 46-byte payload, and a 4-byte Frame Check Sequence (FCS) trailer.
+Conforming strictly to Assignments 1 and 2, every transmission uses a fixed 65-byte Ethernet-style frame consisting of a 15-byte header, a 46-byte payload, and a 4-byte Frame Check Sequence (FCS) trailer[cite: 1].
 
 \begin{figure}[H]
     \centering
@@ -516,7 +537,7 @@ Table \ref{tab:case1} records the empirical performance metrics for $p$-Persiste
             grid=both, grid style={dashed, gray!30},
             xmin=0, xmax=1.05, ymin=0, ymax=850
         ]
-            \addplot[color=red!80!black, mark=*, thick] coordinates {
+            \addplot[color=red!80!black, mark=*, mark size=1.5pt, thick] coordinates {
                 (0.05, 361) (0.10, 492) (0.15, 574) (0.20, 606)
                 (0.30, 703) (0.40, 740) (0.50, 661) (0.60, 528)
                 (0.70, 486) (0.80, 274) (0.90, 98)  (1.00, 71)
@@ -537,7 +558,7 @@ Table \ref{tab:case1} records the empirical performance metrics for $p$-Persiste
             grid=both, grid style={dashed, gray!30},
             xmin=0, xmax=1.05, ymin=0, ymax=80
         ]
-            \addplot[color=orange!90!black, mark=square*, thick] coordinates {
+            \addplot[color=orange!90!black, mark=square*, mark size=1.5pt, thick] coordinates {
                 (0.05, 71.63) (0.10, 65.06) (0.15, 62.29) (0.20, 60.24)
                 (0.30, 60.04) (0.40, 50.31) (0.50, 44.48) (0.60, 42.72)
                 (0.70, 37.91) (0.80, 29.58) (0.90, 6.69)  (1.00, 5.19)
@@ -558,7 +579,7 @@ Table \ref{tab:case1} records the empirical performance metrics for $p$-Persiste
             grid=both, grid style={dashed, gray!30},
             xmin=0, xmax=1.05, ymin=60, ymax=100
         ]
-            \addplot[color=green!60!black, mark=triangle*, thick] coordinates {
+            \addplot[color=green!60!black, mark=triangle*, mark size=1.5pt, thick] coordinates {
                 (0.05, 67.59) (0.10, 68.74) (0.15, 68.68) (0.20, 68.68)
                 (0.30, 68.15) (0.40, 67.98) (0.50, 70.84) (0.60, 74.74)
                 (0.70, 77.28) (0.80, 85.74) (0.90, 94.03) (1.00, 96.36)
@@ -603,16 +624,26 @@ Table \ref{tab:case2} compiles the comparative evaluation across all four protoc
         % Subplot 1: Collisions vs N
         \begin{axis}[
             name=c2_ax1,
-            width=5.8cm, height=5.0cm,
+            width=10.0cm, height=7.0cm,
             title={\textbf{Total Collisions vs. $N$}},
-            title style={font=\footnotesize},
+            title style={font=\small},
             xlabel={Contending Stations ($N$)},
             ylabel={Collisions / 2000 frames},
-            label style={font=\scriptsize},
-            tick label style={font=\tiny},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=0, xmax=32, ymin=0, ymax=2200,
-            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.85}
+            xmin=0, xmax=32, ymin=-100, ymax=2200,
+            every mark/.append style={scale=1.3}, 
+            legend style={
+                font=\footnotesize, 
+                at={(0,1)}, 
+                anchor=north west, 
+                fill=white, 
+                fill opacity=0.85,
+                inner sep=6pt,          % Generates extra padding inside the box borders
+                row sep=4pt,            % Spaces out the legend entries vertically
+            },
+            legend image post style={scale=1.2} % Makes the color symbols inside the legend larger
         ]
             \addplot[color=blue!70!black, mark=o, thick] coordinates {
                 (2, 513) (4, 793) (8, 945) (12, 978) (16, 1031) (20, 1048) (25, 1031) (30, 1047)
@@ -632,16 +663,26 @@ Table \ref{tab:case2} compiles the comparative evaluation across all four protoc
         \begin{axis}[
             name=c2_ax2,
             at={($(c2_ax1.east)+(1.3cm,0)$)}, anchor=west,
-            width=5.8cm, height=5.0cm,
+            width=10cm, height=7.0cm,
             title={\textbf{Avg Delay vs. $N$}},
-            title style={font=\footnotesize},
+            title style={font=\small},
             xlabel={Contending Stations ($N$)},
             ylabel={Avg Delay (ms)},
-            label style={font=\scriptsize},
-            tick label style={font=\tiny},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=0, xmax=32, ymin=0, ymax=280,
-            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.85}
+            xmin=0, xmax=32, ymin=-20, ymax=280,
+            every mark/.append style={scale=1.3},
+            legend style={
+                font=\footnotesize, 
+                at={(0,1)}, 
+                anchor=north west, 
+                fill=white, 
+                fill opacity=0.85,
+                inner sep=6pt,
+                row sep=4pt,
+            },
+            legend image post style={scale=1.2}
         ]
             \addplot[color=blue!70!black, mark=o, thick] coordinates {
                 (2, 13.98) (4, 31.15) (8, 65.38) (12, 98.58) (16, 133.50) (20, 167.35) (25, 207.50) (30, 248.53)
@@ -660,17 +701,27 @@ Table \ref{tab:case2} compiles the comparative evaluation across all four protoc
         % Subplot 3: Throughput vs N
         \begin{axis}[
             name=c2_ax3,
-            at={($(c2_ax2.east)+(1.3cm,0)$)}, anchor=west,
-            width=5.8cm, height=5.0cm,
+            at={($(c2_ax1.south)!0.5!(c2_ax2.south) - (0,1.8cm)$)}, anchor=north,
+            width=10cm, height=7.0cm,
             title={\textbf{Throughput vs. $N$}},
-            title style={font=\footnotesize},
+            title style={font=\small},
             xlabel={Contending Stations ($N$)},
             ylabel={Throughput (\%)},
-            label style={font=\scriptsize},
-            tick label style={font=\tiny},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
             xmin=0, xmax=32, ymin=40, ymax=102,
-            legend style={font=\tiny, at={(0.03,0.35)}, anchor=south west, fill=white, fill opacity=0.85}
+            every mark/.append style={scale=1.3},
+            legend style={
+                font=\footnotesize, 
+                at={(0.6,0.45)}, 
+                anchor=south west, 
+                fill=white, 
+                fill opacity=0.85,
+                inner sep=4pt,
+                row sep=4pt,
+            },
+            legend image post style={scale=1.2}
         ]
             \addplot[color=blue!70!black, mark=o, thick] coordinates {
                 (2, 71.55) (4, 64.12) (8, 60.94) (12, 60.27) (16, 59.11) (20, 58.99) (25, 59.40) (30, 59.14)
@@ -690,6 +741,8 @@ Table \ref{tab:case2} compiles the comparative evaluation across all four protoc
     \caption{Performance profiles comparing Non-Persistent, 1-Persistent, $p$-Persistent ($p=0.20$), and CSMA/CD across contending stations $N \in [2, 30]$.}
     \label{fig:case2_plots}
 \end{figure}
+
+
 
 \subsection{Test Case 3: Noise Robustness and CRC-32 Validation}
 Under physical channel noise ($p_{\text{noise}} = 0.15$) simulated in \texttt{receiver.c}, 22 corrupted frames were detected by the IEEE 802.3 32-bit CRC module. In every instance, the corrupted frame was discarded, a NAK (0x00) was issued, and the station executed backoff and retransmitted cleanly, maintaining 100\% end-to-end data integrity.
@@ -776,7 +829,7 @@ A critical phenomenon observed in Test Case 1 is the \textbf{Ethernet Channel Ca
 Consequently, the station that just transmitted successfully has an overwhelming probability of winning subsequent contention slots. In our simulation, when $p \ge 0.80$ in Test Case 1, a single station captured the channel and transmitted frames back-to-back while other stations remained frozen in backoff, driving collisions down to 71 and inflating throughput to 96.36\%. While this maximizes channel throughput, it causes severe short-term unfairness. Practical protocols mitigate capture by enforcing an Interframe Gap (IFG) or mandatory post-transmission backoff.
 
 \subsection{Optimal Persistence Probability \texorpdfstring{($p^* \approx 1/N$)}{(p* approx 1/N)}}
-In distributed contention without capture, the optimal persistence probability satisfies $p^* = 1/N$. In our evaluation with $N = 10$, this optimal operating point is clearly observed in the region $p \in [0.10, 0.20]$, where throughput stabilizes at its highest balanced level ($\approx 68.7\%$) without triggering uncontrolled collision bursts. Setting $p \ll 1/N$ wastes channel capacity on empty slots, while $p \gg 1/N$ causes excessive collisions.
+In distributed contention without capture, the optimal persistence probability satisfies $p^* = 1/N$. In our evaluation with $N = 10$, this optimal operating point is clearly observed in the region $p \in [0.10, 0.20]$, where throughput stabilizes at its highest balanced level ($\approx 68.7\%$) without triggering uncontrolled collision bursts. Setting $p \ll 1/N$ wastes channel capacity on idle slots, while $p \gg 1/N$ causes excessive collisions.
 
 % =========================================================================
 % SECTION 9: COMMENTS AND LEARNING EVALUATION
@@ -812,8 +865,6 @@ The assignment was moderately challenging:
 % =========================================================================
 \section{Sources Used}
 \begin{enumerate}
-    \item Kurose, J. F., and Ross, K. W., \textit{Computer Networking: A Top-Down Approach}, 8th ed., Pearson, 2021.
-    \item Tanenbaum, A. S., and Wetherall, D. J., \textit{Computer Networks}, 5th ed., Prentice Hall, 2011.
     \item Stallings, W., \textit{Data and Computer Communications}, 10th ed., Pearson, 2014.
     \item Kleinrock, L., and Tobagi, F. A., ``Packet Switching in Radio Channels: Part I---Carrier Sense Multiple-Access Modes and Their Throughput-Delay Characteristics,'' \textit{IEEE Transactions on Communications}, vol. 23, no. 12, pp. 1400--1416, Dec. 1975.
     \item IEEE Standard for Ethernet (\textit{IEEE Std 802.3-2022}) and POSIX / BSD Socket API Reference Documentation.
