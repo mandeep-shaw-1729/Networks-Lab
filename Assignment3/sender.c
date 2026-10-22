@@ -1,4 +1,4 @@
-/* station_sender.c - First Sender Chooses Protocol; Subsequent Senders Inherit It */
+/* sender.c - First Sender Chooses Protocol; Subsequent Senders Inherit It */
 #include "csma_common.h"
 
 /* Hash station name string/integer into a unique byte for Source MAC & RNG seed */
@@ -30,14 +30,24 @@ static void prepareStationFrame(EthernetFrame *frame, unsigned char packedBuf[FR
     packFrame(frame, packedBuf);
 }
 
+/* Helper to guarantee full TCP reads for the 2-byte ACKs/NAKs */
+static int recv_exact(sock_t s, unsigned char *buf, size_t len) {
+    size_t got = 0;
+    while (got < len) {
+        int r = recv(s, (char *)(buf + got), (int)(len - got), 0);
+        if (r <= 0) return -1;
+        got += (size_t)r;
+    }
+    return 0;
+}
+
 /* 1. Carrier Sensing Method */
 static ChannelState senseCarrier(sock_t sock) {
     uint8_t req = MSG_SENSE_REQ;
     if (send(sock, (const char *)&req, 1, 0) <= 0) return CH_BUSY;
 
     uint8_t resp[2] = {0, 0};
-    int r = recv(sock, (char *)resp, 2, 0);
-    if (r == 2 && resp[0] == MSG_SENSE_RESP) {
+    if (recv_exact(sock, resp, 2) == 0 && resp[0] == MSG_SENSE_RESP) {
         return (ChannelState)resp[1];
     }
     return CH_BUSY;
@@ -97,15 +107,23 @@ static int transmitFrameCSMA(sock_t sock, const char *stationName,
         memcpy(&pkt[1], packedBuf, FRAME_SIZE);
         send(sock, (const char *)pkt, sizeof(pkt), 0);
 
-        /* Step C: Wait for 2-byte ACK (0xA5 + seqNo) or Collision Jam (0xFE) */
+        /* Step C: Wait for 2-byte ACK (0xA5 + seqNo), NAK (0x00), or Collision Jam (0xFE) */
         uint8_t reply[2] = {0, 0};
-        int r = recv(sock, (char *)reply, 2, 0);
+        if (recv_exact(sock, reply, 2) < 0) return 0;
 
-        if (r == 2 && reply[0] == ACK_MARKER && reply[1] == frame->sequenceNumber) {
+        if (reply[0] == ACK_MARKER && reply[1] == frame->sequenceNumber) {
             return 1; /* Clean delivery confirmed */
         }
 
-        /* Collision occurred */
+        if (reply[0] == 0x00) {
+            /* CRC-32 Noise Failure from receiver (Not a contention collision) */
+            printf("[Station \"%s\"] Seq %u corrupted by noise. Retransmitting...\n", 
+                   stationName, frame->sequenceNumber);
+            SLEEP_MS(TX_TIME_MS);
+            continue; /* Retry without incrementing collision backoff */
+        }
+
+        /* Otherwise, it is a MSG_COLLISION (0xFE) */
         attempts++;
         (*collision_count)++;
 
@@ -120,7 +138,7 @@ static int transmitFrameCSMA(sock_t sock, const char *stationName,
 
         performBackoff(attempts, proto);
     }
-    return 0;
+    return 0; /* Max collisions reached */
 }
 
 int main(int argc, char *argv[]) {
@@ -178,7 +196,7 @@ int main(int argc, char *argv[]) {
 
     /* Step 3: Receive Protocol Lock Status from Channel Server */
     uint8_t syncResp[2] = {0, 0};
-    if (recv(sock, (char *)syncResp, 2, 0) != 2 || syncResp[0] != MSG_PROTO_SYNC) {
+    if (recv_exact(sock, syncResp, 2) < 0 || syncResp[0] != MSG_PROTO_SYNC) {
         fprintf(stderr, "[Station \"%s\"] Failed to synchronize protocol with channel.\n", stationName);
         closeInputFile(fp);
         CLOSESOCK(sock);
@@ -253,13 +271,19 @@ int main(int argc, char *argv[]) {
         prepareStationFrame(&frame, packedBuf, macId, seqNo, payloadBuf, payloadLen);
 
         double t0 = get_time_ms();
-        transmitFrameCSMA(sock, stationName, &frame, packedBuf, proto, p_prob, &total_collisions);
+        int status = transmitFrameCSMA(sock, stationName, &frame, packedBuf, proto, p_prob, &total_collisions);
         double delay = get_time_ms() - t0;
-        total_delay_ms += delay;
-
-        printf("[Station \"%s\"] Seq %u Delivered (65B) | FCS: 0x%08X | Delay: %.1f ms | Collisions: %d\n",
-               stationName, seqNo, frame.fcs, delay, total_collisions);
-        seqNo++;
+        
+        if (status == 1) {
+            total_delay_ms += delay;
+            printf("[Station \"%s\"] Seq %u Delivered (65B) | FCS: 0x%08X | Delay: %.1f ms | Collisions: %d\n",
+                   stationName, seqNo, frame.fcs, delay, total_collisions);
+        } else {
+            printf("[Station \"%s\"] Seq %u FAILED after %d collision attempts.\n", 
+                   stationName, seqNo, MAX_COLLISIONS);
+        }
+        
+        seqNo++; /* Advance sequence number regardless of success/failure */
     }
 
     closeInputFile(fp);
@@ -273,7 +297,7 @@ int main(int argc, char *argv[]) {
         if (proto == PROTO_P_PERSISTENT) {
             printf("Persistence Prob (p)   : %.2f\n", p_prob);
         }
-        printf("Total Frames Sent      : %u\n", seqNo);
+        printf("Total Frames Attempted : %u\n", seqNo);
         printf("Total Collisions       : %d\n", total_collisions);
         printf("Average Frame Delay    : %.2f ms\n", total_delay_ms / seqNo);
         printf("======================================================\n");

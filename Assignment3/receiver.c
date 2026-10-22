@@ -1,4 +1,4 @@
-/* channel_receiver.c - Locks CSMA Protocol from First Sender for All Subsequent Senders */
+/* receiver.c - Locks CSMA Protocol from First Sender for All Subsequent Senders */
 #include "csma_common.h"
 
 typedef struct {
