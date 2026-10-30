@@ -1,4 +1,4 @@
-/* sender.c - First Sender Chooses Protocol; Subsequent Senders Inherit It */
+/* sender.c - Station Transmitter Implementing Theoretical CSMA & CSMA/CD */
 #include "csma_common.h"
 
 /* Hash station name string/integer into a unique byte for Source MAC & RNG seed */
@@ -10,7 +10,7 @@ static uint8_t hashStationName(const char *name) {
     return (uint8_t)((h & 0xFF) ? (h & 0xFF) : 1);
 }
 
-/* Construct and pack 65-byte EthernetFrame using your Assignment 1 & 2 functions */
+/* Construct and pack 65-byte EthernetFrame (Trailer kept at 0x00000000, no CRC/Error) */
 static void prepareStationFrame(EthernetFrame *frame, unsigned char packedBuf[FRAME_SIZE],
                                 uint8_t macId, uint8_t seqNo,
                                 const unsigned char *payloadData, uint16_t payloadLen) {
@@ -23,22 +23,11 @@ static void prepareStationFrame(EthernetFrame *frame, unsigned char packedBuf[FR
     frame->sequenceNumber = seqNo;
     copyPayload(frame, payloadData, payloadLen);
 
-    /* Compute and attach IEEE 802.3 CRC-32 in frame->fcs */
-    generateFrameCRC(frame, CRC_32);
+    /* Trailer field is retained in the 65-byte structure without error calculation */
+    frame->fcs = 0x00000000;
 
-    /* Pack into 65-byte buffer ready for socket transmission */
+    /* Pack into 65-byte buffer (15B Header + 46B Payload + 4B Trailer) */
     packFrame(frame, packedBuf);
-}
-
-/* Helper to guarantee full TCP reads for the 2-byte ACKs/NAKs */
-static int recv_exact(sock_t s, unsigned char *buf, size_t len) {
-    size_t got = 0;
-    while (got < len) {
-        int r = recv(s, (char *)(buf + got), (int)(len - got), 0);
-        if (r <= 0) return -1;
-        got += (size_t)r;
-    }
-    return 0;
 }
 
 /* 1. Carrier Sensing Method */
@@ -67,35 +56,39 @@ static void performBackoff(int collisionAttempt, CSMAProtocol proto) {
     SLEEP_MS(slots * SLOT_TIME_MS);
 }
 
-/* 3. CSMA Transmission & Collision Detection Method */
+/* 3. Theoretical CSMA & CSMA/CD Transmission Method */
 static int transmitFrameCSMA(sock_t sock, const char *stationName,
                              const EthernetFrame *frame, const unsigned char packedBuf[FRAME_SIZE],
                              CSMAProtocol proto, double p_prob, int *collision_count) {
     int attempts = 0;
 
     while (attempts < MAX_COLLISIONS) {
-        /* Step A: Sense Carrier according to selected CSMA scheme */
+        /* Step A: Sense Carrier according to theoretical CSMA scheme */
         if (proto == PROTO_NON_PERSISTENT) {
+            /* Non-Persistent: If busy, wait a random time and sense again */
             while (senseCarrier(sock) != CH_IDLE) {
                 printf("[Station \"%s\"] Channel BUSY -> Non-Persistent random wait...\n", stationName);
                 performBackoff(1, PROTO_NON_PERSISTENT);
             }
         }
         else if (proto == PROTO_1_PERSISTENT || proto == PROTO_CSMA_CD) {
+            /* 1-Persistent & CSMA/CD: Continuously sense until idle, then transmit immediately */
             while (senseCarrier(sock) != CH_IDLE) {
                 SLEEP_MS(2);
             }
         }
         else if (proto == PROTO_P_PERSISTENT) {
+            /* p-Persistent: When idle, transmit with prob p, or defer 1 slot with prob (1 - p) */
             while (1) {
                 if (senseCarrier(sock) == CH_IDLE) {
                     double r = (double)rand() / (double)RAND_MAX;
                     if (r <= p_prob) {
-                        break; /* Transmit in current slot with probability p */
+                        break; /* Transmit in current slot */
                     } else {
-                        SLEEP_MS(SLOT_TIME_MS); /* Defer 1 slot with probability (1 - p) */
+                        SLEEP_MS(SLOT_TIME_MS); /* Defer 1 slot and re-sense */
                     }
                 } else {
+                    /* Channel busy: sense continuously until it becomes idle */
                     SLEEP_MS(2);
                 }
             }
@@ -105,40 +98,34 @@ static int transmitFrameCSMA(sock_t sock, const char *stationName,
         unsigned char pkt[1 + FRAME_SIZE];
         pkt[0] = MSG_TX_START;
         memcpy(&pkt[1], packedBuf, FRAME_SIZE);
-        send(sock, (const char *)pkt, sizeof(pkt), 0);
+        if (send(sock, (const char *)pkt, sizeof(pkt), 0) <= 0) return 0;
 
-        /* Step C: Wait for 2-byte ACK (0xA5 + seqNo), NAK (0x00), or Collision Jam (0xFE) */
-        uint8_t reply[2] = {0, 0};
-        if (recv_exact(sock, reply, 2) < 0) return 0;
-
-        if (reply[0] == ACK_MARKER && reply[1] == frame->sequenceNumber) {
-            return 1; /* Clean delivery confirmed */
-        }
-
-        if (reply[0] == 0x00) {
-            /* CRC-32 Noise Failure from receiver (Not a contention collision) */
-            printf("[Station \"%s\"] Seq %u corrupted by noise. Retransmitting...\n", 
-                   stationName, frame->sequenceNumber);
-            SLEEP_MS(TX_TIME_MS);
-            continue; /* Retry without incrementing collision backoff */
-        }
-
-        /* Otherwise, it is a MSG_COLLISION (0xFE) */
-        attempts++;
-        (*collision_count)++;
-
+        /* Step C: Protocol-Specific Post-Transmission Behavior */
         if (proto == PROTO_CSMA_CD) {
+            /* CSMA/CD ONLY: Receives either 2-byte ACK (0xA5) or immediate 2-byte Jam Signal (0xFE) */
+            uint8_t reply[2] = {0, 0};
+            if (recv_exact(sock, reply, 2) < 0) return 0;
+
+            if (reply[0] == ACK_MARKER && reply[1] == frame->sequenceNumber) {
+                return 1; /* Frame delivered to Receiver and ACKed */
+            }
+
+            /* Jam Signal (0xFE) received: Immediate abort and Binary Exponential Backoff */
+            attempts++;
+            (*collision_count)++;
             printf("[Station \"%s\"] CSMA/CD Jam Signal Detected on Seq %u! Aborting immediately (Attempt %d)\n",
                    stationName, frame->sequenceNumber, attempts);
+            performBackoff(attempts, proto);
         } else {
+            /* Pure CSMA (Non-Persistent, 1-Persistent, p-Persistent):
+             * NO Jam Signal and NO Acknowledgement! The station transmits for the full frame duration
+             * (TX_TIME_MS) and assumes transmission is complete. If a collision occurred on the server,
+             * the server drops the frame naturally. */
             SLEEP_MS(TX_TIME_MS);
-            printf("[Station \"%s\"] Collision / ACK Timeout on Seq %u (Attempt %d)\n",
-                   stationName, frame->sequenceNumber, attempts);
+            return 1;
         }
-
-        performBackoff(attempts, proto);
     }
-    return 0; /* Max collisions reached */
+    return 0; /* Max collisions reached (CSMA/CD) */
 }
 
 int main(int argc, char *argv[]) {
@@ -167,14 +154,14 @@ int main(int argc, char *argv[]) {
     WSAStartup(MAKEWORD(2, 2), &wsa);
 #endif
 
-    /* Open input.txt using your fileio.c functions */
+    /* Open input.txt using fileio.c */
     FILE *fp = openInputFile("input.txt");
     if (!fp) {
         fprintf(stderr, "[Station \"%s\"] Error: Could not open input.txt\n", stationName);
         return 1;
     }
 
-    /* Step 2: Connect to Shared Channel & Register Station Name */
+    /* Step 2: Connect to Shared Channel Server & Register Station Name */
     sock_t sock = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in server;
     memset(&server, 0, sizeof(server));
@@ -183,7 +170,7 @@ int main(int argc, char *argv[]) {
     server.sin_port = htons(SERVER_PORT);
 
     if (connect(sock, (struct sockaddr *)&server, sizeof(server)) == SOCKET_ERROR) {
-        perror("Station connect failed (Is ./receiver running?)");
+        perror("Station connect failed (Is ./server running?)");
         closeInputFile(fp);
         return 1;
     }
@@ -197,7 +184,7 @@ int main(int argc, char *argv[]) {
     /* Step 3: Receive Protocol Lock Status from Channel Server */
     uint8_t syncResp[2] = {0, 0};
     if (recv_exact(sock, syncResp, 2) < 0 || syncResp[0] != MSG_PROTO_SYNC) {
-        fprintf(stderr, "[Station \"%s\"] Failed to synchronize protocol with channel.\n", stationName);
+        fprintf(stderr, "[Station \"%s\"] Failed to synchronize protocol with server.\n", stationName);
         closeInputFile(fp);
         CLOSESOCK(sock);
         return 1;
@@ -207,7 +194,6 @@ int main(int argc, char *argv[]) {
     CSMAProtocol proto = PROTO_CSMA_CD;
 
     if (lockedProto == PROTO_UNSET) {
-        /* This is the FIRST sender: ask it to choose the protocol for all stations */
         if (argc >= 3) {
             protoChoice = atoi(argv[2]);
         } else {
@@ -224,16 +210,14 @@ int main(int argc, char *argv[]) {
         }
         proto = (CSMAProtocol)protoChoice;
 
-        /* Inform Channel Server to lock this protocol for all subsequent stations */
         uint8_t setPkt[2] = { MSG_SET_PROTO, (uint8_t)proto };
         send(sock, (const char *)setPkt, 2, 0);
     } else {
-        /* Subsequent sender: automatically inherit the first sender's protocol */
         proto = lockedProto;
         printf("\n[Channel Sync] Protocol Locked by First Station: %s\n", getProtocolName(proto));
     }
 
-    /* Step 4: If protocol is p-Persistent, EVERY station gets to set its own p value */
+    /* Step 4: If protocol is p-Persistent, EVERY station sets its own p value */
     if (proto == PROTO_P_PERSISTENT) {
         if (argc >= 4) {
             p_prob = atof(argv[3]);
@@ -273,17 +257,27 @@ int main(int argc, char *argv[]) {
         double t0 = get_time_ms();
         int status = transmitFrameCSMA(sock, stationName, &frame, packedBuf, proto, p_prob, &total_collisions);
         double delay = get_time_ms() - t0;
-        
+
         if (status == 1) {
             total_delay_ms += delay;
-            printf("[Station \"%s\"] Seq %u Delivered (65B) | FCS: 0x%08X | Delay: %.1f ms | Collisions: %d\n",
-                   stationName, seqNo, frame.fcs, delay, total_collisions);
+            if (proto == PROTO_CSMA_CD) {
+                printf("[Station \"%s\"] Seq %u Delivered & ACKed (65B) | Delay: %.1f ms | Collisions: %d\n",
+                       stationName, seqNo, delay, total_collisions);
+            } else {
+                printf("[Station \"%s\"] Seq %u Transmitted (65B) | Delay: %.1f ms\n",
+                       stationName, seqNo, delay);
+            }
         } else {
-            printf("[Station \"%s\"] Seq %u FAILED after %d collision attempts.\n", 
+            printf("[Station \"%s\"] Seq %u Aborted after %d collision attempts.\n",
                    stationName, seqNo, MAX_COLLISIONS);
         }
-        
-        seqNo++; /* Advance sequence number regardless of success/failure */
+
+        seqNo++;
+
+        /* Inter-frame yielding pause for all CSMA schemes EXCEPT 1-Persistent CSMA */
+        if (proto != PROTO_1_PERSISTENT) {
+            SLEEP_MS(SLOT_TIME_MS + (rand() % (2 * SLOT_TIME_MS)));
+        }
     }
 
     closeInputFile(fp);
@@ -297,8 +291,10 @@ int main(int argc, char *argv[]) {
         if (proto == PROTO_P_PERSISTENT) {
             printf("Persistence Prob (p)   : %.2f\n", p_prob);
         }
-        printf("Total Frames Attempted : %u\n", seqNo);
-        printf("Total Collisions       : %d\n", total_collisions);
+        printf("Total Frames Sent      : %u\n", seqNo);
+        if (proto == PROTO_CSMA_CD) {
+            printf("Collisions Detected    : %d\n", total_collisions);
+        }
         printf("Average Frame Delay    : %.2f ms\n", total_delay_ms / seqNo);
         printf("======================================================\n");
     }
