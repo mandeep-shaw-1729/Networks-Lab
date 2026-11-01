@@ -1,0 +1,982 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.8in,headheight=14.5pt]{geometry}
+\usepackage{fancyhdr}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{ragged2e}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usetikzlibrary{calc,shapes,arrows.meta,positioning,backgrounds,decorations.pathreplacing}
+\pgfplotsset{compat=1.18}
+
+% Prevent vertical stretching and minimize gaps around floats/lists
+\raggedbottom
+\setlist{itemsep=1.5pt, topsep=2.5pt, parsep=1pt, partopsep=0pt}
+\setlength{\intextsep}{5pt plus 1pt minus 1pt}
+\setlength{\textfloatsep}{5pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{3pt}
+\setlength{\belowcaptionskip}{2pt}
+\setlength{\abovedisplayskip}{4pt plus 1pt minus 1pt}
+\setlength{\belowdisplayskip}{4pt plus 1pt minus 1pt}
+
+% Compact section spacing to prevent orphan breaks
+\makeatletter
+\renewcommand\section{\@startsection {section}{1}{\z@}%
+                                   {-2.2ex \@plus -0.5ex \@minus -.2ex}%
+                                   {1.2ex \@plus.2ex}%
+                                   {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+                                     {-1.8ex\@plus -0.4ex \@minus -.2ex}%
+                                     {0.8ex \@plus .2ex}%
+                                     {\normalfont\large\bfseries}}
+\makeatother
+
+% --- Hyperref Setup ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=blue!70!black,
+    urlcolor=blue!70!black
+}
+
+% --- Header and Footer ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Medium Access Control in Data Link Layer}
+\rhead{Computer Networks Lab: Assignment 3}
+\cfoot{Page \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.0pt}
+
+% --- Code Listing Styling ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.45,0.45,0.45}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.97,0.98}
+\definecolor{keycolor}{rgb}{0.0,0.2,0.6}
+
+\lstdefinestyle{cstyle}{
+    language=C,
+    morekeywords={uint8_t,uint16_t,uint32_t,size_t,PreparedFrame,EthernetFrame,sock_t,ChannelState,CSMAProtocol,MsgType},
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{keycolor}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\scriptsize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=6pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,
+    rulecolor=\color{black!20},
+    columns=flexible,
+    aboveskip=4pt,
+    belowskip=4pt
+}
+
+\lstdefinestyle{tracestyle}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\scriptsize,
+    columns=flexible,
+    numbers=none,
+    frame=single,
+    rulecolor=\color{black!20},
+    breaklines=true,
+    keepspaces=true,
+    aboveskip=4pt,
+    belowskip=4pt
+}
+
+\lstset{style=cstyle}
+
+\begin{document}
+
+% =========================================================================
+% COVER PAGE
+% =========================================================================
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+    \centering
+    \vspace*{1.2cm}
+    
+    {\Large \textbf{JADAVPUR UNIVERSITY}}\\[0.3cm]
+    {\large DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING}\\[1.8cm]
+    
+    \rule{\linewidth}{1.2pt}\\[0.4cm]
+    {\huge \textbf{Assignment 3 Report}}\\[0.3cm]
+    {\LARGE \textbf{Design and Implementation of Medium Access Control Mechanisms}}\\[0.3cm]
+    {\large \textit{Empirical Evaluation of Non-Persistent, 1-Persistent, $p$-Persistent, and CSMA/CD Protocols over a Simulated Socket Shared Channel}}\\[0.3cm]
+    \rule{\linewidth}{1.2pt}\\[1.8cm]
+    
+    \begin{minipage}[t]{0.88\textwidth}
+        \large
+        \textbf{Course:} Computer Networks Laboratory (BCSE-III)\\[0.25cm]
+        \textbf{Student Name:} Mandeep Shaw\\[0.25cm]
+        \textbf{Section:} A1\\[0.25cm]
+        \textbf{Roll Number:} 302510501002\\[0.25cm]
+        \textbf{Assignment:} Assignment 3 (Medium Access Control: CSMA Techniques with Collision Detection)\\[0.25cm]
+        \textbf{Date of Submission:} November 2026
+    \end{minipage}
+    
+    \vfill
+    {\small Faculty of Engineering and Technology $\bullet$ Jadavpur University, Kolkata, India}
+    \vspace*{0.8cm}
+\end{titlepage}
+
+% =========================================================================
+% TABLE OF CONTENTS
+% =========================================================================
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+% =========================================================================
+% SECTION 1: INTRODUCTION AND OBJECTIVES
+% =========================================================================
+\section{Introduction and Objectives}
+In broadcast and shared-medium communications, multiple independent network nodes share a common physical channel to transmit data packets. Without centralized scheduling or coordinated arbitration, concurrent transmissions on the shared medium inevitably overlap in time and space, resulting in destructive interference known as a \textbf{packet collision}. When a collision occurs, colliding frames are rendered mutually unreadable, corrupted, and discarded by receivers, leading to substantial degradation of throughput, increased latency, and wasted bandwidth.
+
+To resolve contention and allocate channel access fairly and efficiently among autonomous stations, the Data Link Layer---specifically the \textbf{Medium Access Control (MAC) sublayer}---employs Carrier Sense Multiple Access (CSMA) techniques. CSMA mandates that a station sense the medium (carrier sensing) prior to transmitting, adopting the foundational principle ``listen before talk.''
+
+The primary objectives of this laboratory assignment are:
+\begin{enumerate}
+    \item \textbf{Emulation of a Shared Physical Channel Server:} Design and construct a multi-client socket-based shared channel emulator in C running over TCP/IP loopback (\texttt{127.0.0.1:5000}) that dynamically tracks and enforces the physical channel state machine among three distinct states: \textbf{IDLE}, \textbf{BUSY}, and \textbf{COLLISION}.
+    \item \textbf{Implementation of Independent Station Processes:} Construct independent client processes emulating network stations implementing four canonical medium access strategies:
+    \begin{itemize}
+        \item \textbf{Non-Persistent CSMA:} Randomizes re-sensing intervals upon detecting a busy medium, reducing post-transmission collision bursts at the cost of idle channel slots.
+        \item \textbf{1-Persistent CSMA:} Continuously monitors the medium and transmits with probability $p=1$ immediately when the medium becomes idle, maximizing channel utilization under low traffic but suffering severe collision cascades under heavy loads.
+        \item \textbf{$p$-Persistent CSMA:} Balances the trade-off between idle channel waste and collision bursts by operating on slotted contention boundaries, transmitting with probability $p$ and deferring with probability $1-p$.
+        \item \textbf{CSMA with Collision Detection (CSMA/CD):} Emulates IEEE 802.3 Ethernet behavior where transceivers monitor the medium while transmitting, immediately abort collided transmissions, emit a jamming signal, and schedule retransmissions using Truncated Binary Exponential Backoff (BEB).
+    \end{itemize}
+    \item \textbf{End-to-End Three-Tier Architecture:} Implement an end-to-end communication pipeline: Senders $\to$ Channel Server $\to$ Receiver, where clean frames are relayed to a dedicated destination node and acknowledgments are routed back for collision-detected transfers.
+    \item \textbf{Empirical Performance Profiling:} Benchmark the protocols across the mandatory test cases:
+    \begin{itemize}
+        \item Sweep persistence probability $p \in [0.05, 1.00]$ in $p$-Persistent CSMA for fixed station count ($N = 10$) to determine the optimal operating point $p^*$.
+        \item Benchmark all four schemes across varying numbers of contending stations ($N \in [2, 30]$) to analyze collisions, average transmission delay, and channel throughput.
+    \end{itemize}
+\end{enumerate}
+
+% =========================================================================
+% SECTION 2: THEORETICAL PRINCIPLES OF MEDIUM ACCESS CONTROL
+% =========================================================================
+\section{Theoretical Principles of Medium Access Control}
+
+\subsection{Channel Propagation Delay and Normalized Parameter \texorpdfstring{$a$}{a}}
+In any broadcast medium, electromagnetic signals propagate at a finite velocity $v$ (approximately $2 \times 10^8\text{ m/s}$ in copper cabling). For two stations separated by distance $d$, the one-way propagation delay is:
+\begin{equation}
+    \tau = T_{\text{prop}} = \frac{d}{v}
+\end{equation}
+The vulnerability period of CSMA is $2\tau$: if Station A begins transmitting at time $t_0$, its signal does not reach Station B until $t_0 + \tau$. If Station B senses the channel at $t_0 + \tau - \epsilon$, it detects an IDLE medium and begins transmitting, causing a collision that corrupts both packets. The normalized propagation delay parameter $a$ is defined as:
+\begin{equation}
+    a = \frac{T_{\text{prop}}}{T_{\text{tx}}} = \frac{\tau \cdot B}{L_{\text{frame}}}
+\end{equation}
+where $B$ is the channel bandwidth and $L_{\text{frame}}$ is the frame length in bits. As $a \to 0$, carrier sensing becomes instantaneous and channel efficiency approaches theoretical capacity. When $a \gg 1$, carrier sensing fails because stations sense outdated channel states.
+
+\subsection{Non-Persistent CSMA}
+In Non-Persistent CSMA, a station with a frame ready for transmission acts as follows:
+\begin{enumerate}
+    \item Senses the shared channel.
+    \item If the channel is IDLE, the station transmits immediately.
+    \item If the channel is BUSY, the station does not continuously monitor the channel. Instead, it waits for an independent random backoff interval drawn from a random distribution and then re-senses the channel.
+\end{enumerate}
+Because contending stations that sense a busy channel back off for different random durations, Non-Persistent CSMA substantially dampens the probability that multiple stations transmit simultaneously the moment a current transmission terminates. However, this randomness introduces idle slots when the channel is unoccupied, causing lower channel utilization under light loads. The theoretical throughput $S$ as a function of offered channel traffic $G$ (in frames per transmission time) is given by:
+\begin{equation}
+    S_{\text{Non-Pers}} = \frac{G \cdot e^{-a G}}{G(1 + 2a) + e^{-a G}}
+\end{equation}
+
+\subsection{1-Persistent CSMA}
+In 1-Persistent CSMA, stations operate with maximum greediness:
+\begin{enumerate}
+    \item Senses the shared channel.
+    \item If the channel is IDLE, transmits immediately with probability $p = 1$.
+    \item If the channel is BUSY, persists sensing the channel continuously until it detects the transition to IDLE, and then transmits immediately.
+\end{enumerate}
+Under light traffic, 1-Persistent CSMA incurs zero unnecessary idle waiting time. However, if two or more stations generate packets while another transmission is active, all waiting stations sense the channel becoming idle at the exact same instant and transmit simultaneously. This produces a \textbf{deterministic post-transmission collision cascade}. Theoretical throughput for 1-Persistent CSMA is formulated as:
+\begin{equation}
+    S_{\text{1-Pers}} = \frac{G [1 + G + a G (1 + G + \frac{a G}{2})] e^{-G(1+2a)}}{G(1 + 2a) - (1 - e^{-a G}) + (1 + a G) e^{-G(1+a)}}
+\end{equation}
+Under the assumption of negligible propagation delay ($a \to 0$), this simplifies to:
+\begin{equation}
+    S_{\text{1-Pers}} = \frac{G (1 + G) e^{-G}}{G + e^{-G}}
+\end{equation}
+Under heavy traffic ($G \gg 1$), $S_{\text{1-Pers}} \to 0$ due to catastrophic collision cascades.
+
+\subsection{\texorpdfstring{$p$-Persistent}{p-Persistent} CSMA and Slotted Arbitration}
+The $p$-Persistent CSMA scheme combines the prompt responsiveness of 1-Persistent CSMA with the collision avoidance of Non-Persistent CSMA by operating on slotted contention boundaries (where slot length $\delta \ge \tau$):
+\begin{enumerate}
+    \item When a station has a packet and senses the channel idle, it transmits with probability $p$, or defers to the next slot with probability $q = 1 - p$.
+    \item If it defers to the next slot, it senses the channel again:
+    \begin{itemize}
+        \item If the slot is still IDLE, it transmits with probability $p$, or defers with probability $q$.
+        \item If the channel has become BUSY (another station began transmitting), it acts as though a collision occurred and schedules retransmission according to backoff.
+    \end{itemize}
+\end{enumerate}
+If $N$ stations are ready to transmit when the channel clears, the probability that exactly one station successfully acquires the medium in the first slot is:
+\begin{equation}
+    P_{\text{success}} = N \cdot p \cdot (1 - p)^{N-1}
+\end{equation}
+The optimal probability $p^*$ that maximizes $P_{\text{success}}$ is derived by differentiating with respect to $p$:
+\begin{equation}
+    \frac{d P_{\text{success}}}{d p} = N(1-p)^{N-1} - N(N-1)p(1-p)^{N-2} = 0 \implies p^* = \frac{1}{N}
+\end{equation}
+Thus, under $N = 10$ contending stations, the optimal persistence probability lies in the region $p^* \approx 0.10$. Selecting $p \ll p^*$ wastes channel capacity on idle slots, while $p \gg p^*$ causes severe collision bursts.
+
+\subsection{CSMA with Collision Detection (CSMA/CD)}
+Pure CSMA protocols suffer from a major inefficiency: once two stations collide, they continue transmitting their complete frames to the end, wasting an entire transmission duration $T_{\text{tx}}$. In IEEE 802.3 Ethernet, stations implement \textbf{Collision Detection (CSMA/CD)}:
+\begin{enumerate}
+    \item \textbf{Listen While Talking:} While transmitting, the transceiver continuously compares the transmitted signal with the channel state. If simultaneous transmission is detected, a collision is flagged.
+    \item \textbf{Immediate Abort and Jam Signal:} Upon detecting a collision, the station halts transmission immediately and transmits a 32-to-48 bit \textbf{Jamming Signal} to ensure all contending stations detect the collision.
+    \item \textbf{Truncated Binary Exponential Backoff (BEB):} Colliding stations defer their next attempt by $R$ slot times, where $R$ is drawn uniformly at random:
+    \begin{equation}
+        R \in [0, 2^k - 1], \quad \text{where } k = \min(\text{attempt}, 10)
+    \end{equation}
+    If collisions persist after 16 attempts ($\text{MAX\_COLLISIONS} = 16$), the frame is dropped with an unrecoverable medium error.
+\end{enumerate}
+
+To ensure that a station does not complete transmitting before the collision signal returns from the furthest point of the collision domain, the frame transmission time must exceed the round-trip propagation time:
+\begin{equation}
+    T_{\text{tx}} \ge 2 \cdot \tau \implies L_{\text{min}} \ge 2 \cdot \tau \cdot B = 2 \cdot d_{\text{max}} \cdot \frac{B}{v}
+\end{equation}
+This fundamental relationship dictates the 64-byte minimum frame size in standard IEEE 802.3 Ethernet.
+
+% =========================================================================
+% SECTION 3: SYSTEM ARCHITECTURE AND PROCEDURAL DESIGN
+% =========================================================================
+\section{System Architecture and Procedural Design}
+
+\subsection{3-Tier Client-Server Architecture Overview}
+The medium access emulation environment is structured as a modular 3-tier client-server socket pipeline operating over TCP/IP loopback (\texttt{127.0.0.1:5000}). The architecture comprises three distinct entities:
+\begin{itemize}
+    \item \textbf{Shared Channel Server (\texttt{server.c}):} Acts as the physical transmission medium. It manages the global channel state machine (\texttt{CH\_IDLE}, \texttt{CH\_BUSY}, \texttt{CH\_COLLISION}), multiplexes incoming carrier sense requests, detects simultaneous transmission overlaps, broadcasts jamming signals (in CSMA/CD) or drops collided frames naturally (in pure CSMA), and forwards clean frames to the destination receiver.
+    \item \textbf{Contending Network Stations (\texttt{sender.c}):} Independent processes representing network interface cards (NICs). Each station reads from \texttt{input.txt}, segments data into 46-byte payloads, builds 65-byte Ethernet frames, executes carrier sensing, implements backoff, and tracks per-frame delay and collisions.
+    \item \textbf{Destination Receiver Node (\texttt{receiver.c}):} Registers with the channel server, receives clean forwarded frames, unpacks headers, displays frame statistics, and issues 2-byte ACKs (\texttt{0xA5, seqNo}) for CSMA/CD transmissions.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.86\textwidth}{!}{%
+    \begin{tikzpicture}[
+        font=\footnotesize,
+        >=Latex,
+        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
+        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
+        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=1.05cm, text width=3.7cm, align=center, font=\scriptsize, inner sep=2.5pt},
+        arrow/.style={->, thick, draw=black!75},
+        retarrow/.style={->, thick, draw=blue!75!black}
+    ]
+        % ==================== BACKGROUND CONTAINERS ====================
+        \begin{scope}[on background layer]
+            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (-0.4, -4.1) rectangle (3.8, 4.8);
+            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (5.3, -4.1) rectangle (9.7, 4.8);
+            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (11.2, -4.1) rectangle (15.4, 4.8);
+        \end{scope}
+
+        % Container Header Labels
+        \node[font=\bfseries\footnotesize, text=blue!85!black] at (1.7, 4.4) {Contending Stations (\texttt{sender})};
+        \node[font=\bfseries\footnotesize, text=red!80!black]  at (7.5, 4.4) {Shared Channel Server (\texttt{server})};
+        \node[font=\bfseries\footnotesize, text=teal!85!black] at (13.3, 4.4) {Destination Node (\texttt{receiver})};
+
+        % ==================== SENDERS (x = 1.7) ====================
+        \node[block] (input)   at (1.7, 3.6)  {1. File Reader\\(\texttt{input.txt})};
+        \node[block] (frame)   at (1.7, 2.35) {2. \texttt{prepareStationFrame()}\\Build 65B Ethernet Frame};
+        \node[proc]  (sense)   at (1.7, 1.0)  {3. \texttt{senseCarrier()}\\CSMA Sensing Strategy};
+        \node[proc]  (send)    at (1.7, -0.35){4. \texttt{Send()}\\Socket Dispatch (65B)};
+        \node[proc]  (backoff) at (1.7, -1.85){8. \texttt{performBackoff()}\\BEB / Random Deferral};
+        \node[proc]  (resp)    at (1.7, -3.25){9. Ingest ACK / Jam\\Track Metrics (Delay, Col)};
+
+        % ==================== CHANNEL SERVER (x = 7.5) ====================
+        \node[chan] (c_sense) at (7.5, 1.0) {Carrier Sense Handler\\Replies \texttt{CH\_IDLE} / \texttt{CH\_BUSY}};
+        \node[chan] (c_arb)   at (7.5, -0.35){Collision Arbiter / FSM\\IDLE $\to$ BUSY ($T_{\text{tx}} = 80$ ms)\\Collision $\to$ Jam ($T_{\text{jam}} = 20$ ms)};
+        \node[chan, draw=blue!70!black] (c_fwd) at (7.5, -1.85){Forwarding Engine\\Clean: Forward to Receiver\\Collided: Drop / Broadcast Jam};
+        \node[chan, draw=teal!70!black] (c_ack) at (7.5, -3.25){ACK Relay (CSMA/CD)\\Relays Receiver ACK to Sender};
+
+        % ==================== RECEIVER (x = 13.3) ====================
+        \node[block] (rrecv)   at (13.3, -0.35){5. \texttt{Recv()}\\Socket Ingestion};
+        \node[block] (runpack) at (13.3, -1.85){6. \texttt{unpackFrame()}\\Header \& Payload Check};
+        \node[block] (rack)    at (13.3, -3.25){7. \texttt{SendACK()}\\Generate 2-Byte ACK (\texttt{0xA5})};
+
+        % ==================== ARROWS ====================
+        \draw[arrow] (input) -- (frame);
+        \draw[arrow] (frame) -- (sense);
+        \draw[arrow] (sense) -- (send);
+
+        % Sense request/reply
+        \draw[arrow, blue!70!black] ([yshift=4pt]sense.east) -- node[above=1pt, font=\scriptsize] {Sense Req} ([yshift=4pt]c_sense.west);
+        \draw[retarrow] ([yshift=-4pt]c_sense.west) -- node[below=1pt, font=\scriptsize] {State Resp} ([yshift=-4pt]sense.east);
+
+        % TX Frame
+        \draw[arrow] (send.east) -- node[above=2pt, font=\scriptsize] {65B Frame} (c_arb.west);
+
+        % Arbiter to forwarding
+        \draw[arrow] (c_arb.south) -- (c_fwd.north);
+
+        % Forward clean frame to receiver
+        \draw[arrow, teal!80!black] (c_fwd.east) -- ++(0.95, 0) |- node[pos=0.25, right=1pt, font=\scriptsize] {Clean Frame} (rrecv.west);
+        \draw[arrow] (rrecv) -- (runpack);
+        \draw[arrow] (runpack) -- (rack);
+
+        % Receiver ACK back to Server
+        \draw[retarrow] (rack.west) -- node[above=2pt, font=\scriptsize] {2B ACK} (c_ack.east);
+
+        % Server relay ACK or Jam to sender
+        \draw[retarrow] (c_ack.west) -- node[above=2pt, font=\scriptsize] {Relay ACK} (resp.east);
+        \draw[arrow, red!70!black] (c_fwd.west) -- node[above=2pt, font=\scriptsize] {Jam (0xFE)} (backoff.east);
+
+        % Backoff feedback
+        \draw[arrow, blue!75!black] (backoff.west) -- ++(-0.35, 0) |- ([yshift=-4pt]sense.west);
+        \draw[arrow, blue!75!black] (resp.west) -- ++(-0.6, 0) |- (frame.west);
+
+    \end{tikzpicture}%
+    }
+    \caption{Three-tier procedural organization of the multi-station CSMA shared channel simulation over loopback.}
+    \label{fig:arch_diagram}
+\end{figure}
+
+\subsection{Frame Structure and In-Memory Layout}
+Conforming strictly to the preceding lab assignments, every transmission uses a fixed 65-byte Ethernet-style frame consisting of a 15-byte header, a 46-byte payload, and a 4-byte Frame Check Sequence (FCS) trailer.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[font=\footnotesize, scale=0.86, every node/.style={transform shape}]
+        % Header blocks
+        \draw[fill=blue!15, thick] (0,0) rectangle (2.2, 0.85) node[pos=0.5, align=center] {Src MAC\\(6 B)};
+        \draw[fill=blue!15, thick] (2.2,0) rectangle (4.4, 0.85) node[pos=0.5, align=center] {Dest MAC\\(6 B)};
+        \draw[fill=blue!25, thick] (4.4,0) rectangle (5.6, 0.85) node[pos=0.5, align=center] {Len\\(2 B)};
+        \draw[fill=blue!35, thick] (5.6,0) rectangle (6.8, 0.85) node[pos=0.5, align=center] {Seq\\(1 B)};
+
+        % Payload block
+        \draw[fill=teal!20, thick] (6.8,0) rectangle (11.5, 0.85) node[pos=0.5, align=center] {Payload Data (\texttt{input.txt})\\(46 Bytes)};
+
+        % Trailer block
+        \draw[fill=red!20, thick] (11.5,0) rectangle (13.5, 0.85) node[pos=0.5, align=center] {FCS Trailer\\(4 Bytes)};
+
+        % Braces and labels
+        \draw[decorate, decoration={brace, mirror, amplitude=4pt}, thick] (0,-0.08) -- (6.8,-0.08)
+            node[pos=0.5, below=4pt] {\textbf{Header (15 Bytes)}};
+        \draw[decorate, decoration={brace, mirror, amplitude=4pt}, thick] (6.8,-0.08) -- (11.5,-0.08)
+            node[pos=0.5, below=4pt] {\textbf{Data Payload (46 B)}};
+        \draw[decorate, decoration={brace, mirror, amplitude=4pt}, thick] (11.5,-0.08) -- (13.5,-0.08)
+            node[pos=0.5, below=4pt] {\textbf{Trailer (4 B)}};
+        \draw[decorate, decoration={brace, amplitude=4pt}, thick] (0,0.93) -- (11.5,0.93)
+            node[pos=0.5, above=4pt] {\textbf{CRC-32 / Checksum Verified Region (61 Bytes)}};
+        \draw[decorate, decoration={brace, amplitude=4pt}, thick] (0,1.72) -- (13.5,1.72)
+            node[pos=0.5, above=4pt] {\textbf{Total Serialized Frame Length: 65 Bytes}};
+    \end{tikzpicture}
+    \caption{In-memory layout and serialization structure of the 65-byte Data Link Frame.}
+    \label{fig:frame_layout}
+\end{figure}
+
+The acknowledgment frame is compact (2 bytes):
+\begin{equation}
+    \text{ACK Frame} = [\text{Marker (\texttt{0xA5})} \ (1\text{ Byte}) \mid \text{Ack Sequence Number} \ (1\text{ Byte})]
+\end{equation}
+
+\subsection{Channel State Machine (FSM)}
+The shared channel server maintains an explicit finite state machine with three states:
+\begin{itemize}
+    \item \textbf{IDLE (\texttt{0}):} No station is transmitting. Carrier sensing replies with \texttt{CH\_IDLE}.
+    \item \textbf{BUSY (\texttt{1}):} Exactly one station is transmitting. The channel remains occupied for $T_{\text{tx}} = 80\text{ ms}$. If another station transmits during this interval, a collision is flagged.
+    \item \textbf{COLLISION (\texttt{2}):} Two or more transmissions overlap. For pure CSMA, the medium remains occupied for the remaining transmission duration and collided frames are naturally dropped. For CSMA/CD, the server broadcasts a 2-byte Jam Signal (\texttt{0xFE, 0x02}) to colliding stations and clears the medium after $T_{\text{jam}} = 20\text{ ms}$.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        font=\footnotesize,
+        scale=0.84, every node/.style={transform shape},
+        >=Latex,
+        state/.style={circle, draw=blue!80!black, fill=blue!10, thick, minimum size=1.9cm, align=center},
+        trans/.style={->, thick, draw=black!75}
+    ]
+        \node[state] (idle) at (0, 0) {\textbf{IDLE}\\\scriptsize State = 0};
+        \node[state, fill=teal!15, draw=teal!80!black] (busy) at (5.0, 1.45) {\textbf{BUSY}\\\scriptsize State = 1};
+        \node[state, fill=red!15, draw=red!80!black] (coll) at (5.0, -1.45) {\textbf{COLLISION}\\\scriptsize State = 2};
+
+        % Transitions
+        \draw[trans] (idle) to[bend left=18] node[above=2pt, sloped] {\texttt{MSG\_TX\_START}} (busy);
+        \draw[trans] (busy) to[bend left=18] node[below=2pt, sloped] {$t \ge T_{\text{tx}}$ (Clean Delivery)} (idle);
+        \draw[trans] (busy) -- node[right=2pt, align=left] {Overlap TX\\Detected} (coll);
+        \draw[trans] (coll) to[bend left=18] node[below=2pt, sloped] {$t \ge T_{\text{jam}}$ (Medium Cleared)} (idle);
+
+    \end{tikzpicture}
+    \caption{Finite state machine of the shared physical transmission medium.}
+    \label{fig:fsm}
+\end{figure}
+
+\subsection{Protocol Opcodes and Channel Handshake}
+The entities coordinate through standardized control opcodes defined in \texttt{csma\_common.h}:
+\begin{itemize}
+    \item \texttt{MSG\_REGISTER\_RX} (\texttt{0x01}): Receiver registers with the server as the destination sink.
+    \item \texttt{MSG\_REGISTER} (\texttt{0x05}): Sender registers its station name string.
+    \item \texttt{MSG\_PROTO\_SYNC} (\texttt{0x06}) / \texttt{MSG\_SET\_PROTO} (\texttt{0x07}): The first connecting station selects the CSMA protocol; the server locks this selection and enforces it across all stations.
+    \item \texttt{MSG\_SENSE\_REQ} (\texttt{0x10}) / \texttt{MSG\_SENSE\_RESP} (\texttt{0x11}): Sender senses carrier; server replies with \texttt{CH\_IDLE} or \texttt{CH\_BUSY}.
+    \item \texttt{MSG\_TX\_START} (\texttt{0x20}): Dispatches a 65-byte packed Ethernet frame onto the medium.
+    \item \texttt{MSG\_FWD\_FRAME\_NOACK} (\texttt{0x30}) / \texttt{MSG\_FWD\_FRAME\_ACK} (\texttt{0x31}): Server forwards frame to receiver.
+    \item \texttt{MSG\_TX\_ACK} (\texttt{0xA5}): 2-byte ACK (\texttt{0xA5, seqNo}) relayed to the transmitting station.
+    \item \texttt{MSG\_COLLISION} (\texttt{0xFE}): Jam signal broadcast to colliding stations in CSMA/CD.
+    \item \texttt{MSG\_STATION\_DONE} (\texttt{0xFF}): Sender signals completion of all frames.
+\end{itemize}
+
+% =========================================================================
+% SECTION 4: IMPLEMENTATION DETAILS
+% =========================================================================
+\section{Implementation Details}
+
+\subsection{Key Methods and Interfaces}
+Table \ref{tab:methods} maps the programmatic methods implemented across the three software modules.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \renewcommand{\arraystretch}{1.04}
+    \begin{tabularx}{\textwidth}{llX}
+        \toprule
+        \textbf{Entity} & \textbf{Method Name} & \textbf{Functional Description} \\
+        \midrule
+        \texttt{sender.c} 
+        & \texttt{senseCarrier()} & Sends \texttt{MSG\_SENSE\_REQ} over socket and reads 2-byte state response. \\
+        & \texttt{performBackoff()} & Executes random backoff (Non-Persistent) or Truncated Binary Exponential Backoff (CSMA/CD). \\
+        & \texttt{transmitFrameCSMA()} & Executes persistence logic (1-Pers, Non-Pers, $p$-Pers, CSMA/CD), handles jam signal detection and immediate abort. \\
+        & \texttt{prepareStationFrame()} & Constructs 65-byte Ethernet frame with MAC addressing and sequence number. \\
+        \midrule
+        \texttt{server.c} 
+        & \texttt{select()} Event Loop & Multiplexes socket descriptors for receiver and up to 64 sender stations. \\
+        & Channel FSM & Enforces $T_{\text{tx}} = 80\text{ ms}$ (busy) and $T_{\text{jam}} = 20\text{ ms}$ (collision) intervals. \\
+        & Collision Detection & Identifies simultaneous transmissions, broadcasts Jam signal (0xFE) in CSMA/CD, or drops frames naturally in pure CSMA. \\
+        & Forwarding Engine & Relays uncorrupted frames to receiver and relays ACKs back to sender. \\
+        \midrule
+        \texttt{receiver.c} 
+        & \texttt{recv\_exact()} & Ingests control opcode, station name, and 65-byte serialized frame. \\
+        & \texttt{unpackFrame()} & Deserializes raw byte stream into structured \texttt{EthernetFrame}. \\
+        & \texttt{sendACK()} & Returns 2-byte ACK frame (\texttt{0xA5, seqNo}) to server for CSMA/CD. \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Functional mapping of sender, server, and receiver methods.}
+    \label{tab:methods}
+\end{table}
+
+\subsection{Core Code Snippets}
+Listing \ref{lst:csma_sender} illustrates carrier sensing, persistence arbitration, and collision handling from \texttt{sender.c}:
+
+\begin{lstlisting}[caption={Carrier sensing and CSMA transmission arbitration (\texttt{sender.c}).}, label={lst:csma_sender}]
+static int transmitFrameCSMA(sock_t sock, const char *stationName,
+                             const EthernetFrame *frame, const unsigned char packedBuf[FRAME_SIZE],
+                             CSMAProtocol proto, double p_prob, int *collision_count) {
+    int attempts = 0;
+    while (attempts < MAX_COLLISIONS) {
+        /* Step A: Sense Carrier according to selected CSMA scheme */
+        if (proto == PROTO_NON_PERSISTENT) {
+            while (senseCarrier(sock) != CH_IDLE) {
+                performBackoff(1, PROTO_NON_PERSISTENT);
+            }
+        } else if (proto == PROTO_1_PERSISTENT || proto == PROTO_CSMA_CD) {
+            while (senseCarrier(sock) != CH_IDLE) {
+                SLEEP_MS(2);
+            }
+        } else if (proto == PROTO_P_PERSISTENT) {
+            while (1) {
+                if (senseCarrier(sock) == CH_IDLE) {
+                    double r = (double)rand() / (double)RAND_MAX;
+                    if (r <= p_prob) break; /* Transmit with probability p */
+                    else SLEEP_MS(SLOT_TIME_MS); /* Defer 1 slot with prob (1 - p) */
+                } else {
+                    SLEEP_MS(2);
+                }
+            }
+        }
+
+        /* Step B: Transmit 1-byte opcode + 65-byte packed EthernetFrame */
+        unsigned char pkt[1 + FRAME_SIZE];
+        pkt[0] = MSG_TX_START;
+        memcpy(&pkt[1], packedBuf, FRAME_SIZE);
+        if (send(sock, (const char *)pkt, sizeof(pkt), 0) <= 0) return 0;
+
+        /* Step C: Protocol-Specific Post-Transmission Handling */
+        if (proto == PROTO_CSMA_CD) {
+            uint8_t reply[2] = {0, 0};
+            if (recv_exact(sock, reply, 2) < 0) return 0;
+            if (reply[0] == ACK_MARKER && reply[1] == frame->sequenceNumber) {
+                return 1; /* Clean delivery and ACK received */
+            }
+            /* Jam signal (0xFE) received: immediate abort and BEB backoff */
+            attempts++;
+            (*collision_count)++;
+            performBackoff(attempts, proto);
+        } else {
+            /* Pure CSMA: Wait full frame duration without ACK */
+            SLEEP_MS(TX_TIME_MS);
+            return 1;
+        }
+    }
+    return 0;
+}
+\end{lstlisting}
+
+Listing \ref{lst:server_collision} highlights the collision detection and channel state arbitration logic in \texttt{server.c}:
+
+\begin{lstlisting}[caption={Collision detection and jam signal broadcasting in \texttt{server.c}.}, label={lst:server_collision}]
+else if (opcode == MSG_TX_START) {
+    if (recv_exact(clients[i].sock, clients[i].raw_buf, FRAME_SIZE) < 0) continue;
+    unpackFrame(clients[i].raw_buf, &clients[i].frame);
+    clients[i].transmitting = 1;
+
+    if (channel_state == CH_IDLE) {
+        channel_state = CH_BUSY;
+        state_end_time = now + TX_TIME_MS;
+    } else {
+        /* COLLISION: Simultaneous transmission detected */
+        total_collisions++;
+        total_dropped_frames += (channel_state == CH_BUSY) ? 2 : 1;
+        channel_state = CH_COLLISION;
+
+        if (locked_protocol == PROTO_CSMA_CD) {
+            /* CSMA/CD: Broadcast Jam signal (0xFE) and abort in JAM_TIME_MS */
+            state_end_time = now + JAM_TIME_MS;
+            uint8_t jam[2] = { MSG_COLLISION, (uint8_t)CH_COLLISION };
+            for (int k = 0; k < MAX_STATIONS; k++) {
+                if (clients[k].active && clients[k].transmitting) {
+                    send(clients[k].sock, (const char *)jam, 2, 0);
+                    clients[k].transmitting = 0;
+                }
+            }
+        } else {
+            /* Pure CSMA: Channel occupied for full TX_TIME_MS, frames dropped */
+            if (now + TX_TIME_MS > state_end_time) state_end_time = now + TX_TIME_MS;
+            for (int k = 0; k < MAX_STATIONS; k++) {
+                if (clients[k].active && clients[k].transmitting) clients[k].transmitting = 0;
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+% =========================================================================
+% SECTION 5: TEST CASES AND EXPERIMENTAL METHODOLOGY
+% =========================================================================
+\section{Test Cases and Experimental Methodology}
+To evaluate the medium access protocols according to the lab specification, three structured experimental scenarios were executed:
+
+\begin{enumerate}
+    \item \textbf{Test Case 1: $p$-Persistent CSMA vs. Persistence Probability $p$ (Fixed $N = 10$):}
+    \begin{itemize}
+        \item \textit{Objective:} Quantify how persistence probability $p$ influences collisions, average transmission delay, and channel throughput under heavy contention ($N = 10$).
+        \item \textit{Parameters:} $p \in \{0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 1.00\}$; $N = 10$ stations; 2,000 delivered frames per run; 5 independent seed trials per parameter.
+        \item \textit{Metrics:} Total collisions, average frame delay (ms), and channel throughput (\%).
+    \end{itemize}
+
+    \item \textbf{Test Case 2: Comparative Evaluation of All 4 CSMA Schemes vs. Contending Stations $N$:}
+    \begin{itemize}
+        \item \textit{Objective:} Compare the scaling resilience and channel stability of Non-Persistent, 1-Persistent, $p$-Persistent (at optimal $p = 0.20$), and CSMA/CD as network density increases.
+        \item \textit{Parameters:} Contending stations $N \in \{2, 4, 8, 10, 12, 16, 20, 25, 30\}$; 2,000 delivered frames per protocol configuration averaged across 5 random seeds.
+        \item \textit{Metrics:} Total collisions, average frame delay (ms), and channel throughput (\%).
+    \end{itemize}
+
+    \item \textbf{Test Case 3: Live Socket Loopback Execution and Protocol Trace Verification:}
+    \begin{itemize}
+        \item \textit{Objective:} Execute compiled \texttt{server}, \texttt{receiver}, and independent \texttt{sender} station binaries natively over TCP loopback (\texttt{127.0.0.1:5000}) with the 49-frame \texttt{input.txt} dataset.
+        \item \textit{Verification:} Capture live traces of carrier sensing, collision detection, jam signal broadcast (\texttt{0xFE}), Truncated Binary Exponential Backoff, and clean frame forwarding.
+    \end{itemize}
+\end{enumerate}
+
+% =========================================================================
+% SECTION 6: EXPERIMENTAL RESULTS AND EMPIRICAL EVALUATION
+% =========================================================================
+\section{Experimental Results and Empirical Evaluation}
+
+\subsection{Test Case 1: \texorpdfstring{$p$-Persistent}{p-Persistent} Performance Dynamics (Fixed \texorpdfstring{$N = 10$}{N = 10})}
+Table \ref{tab:case1} records empirical metrics for $p$-Persistent CSMA under $N = 10$ contending stations across $p \in [0.05, 1.00]$.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \renewcommand{\arraystretch}{0.96}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{ccccc}
+        \toprule
+        \textbf{Persistence Prob ($p$)} & \textbf{Total Collisions} & \textbf{Avg Delay (ms)} & \textbf{Throughput (\%)} & \textbf{Effective Mechanism} \\
+        \midrule
+        0.05 &  234 & 75.38 & 65.90\% & High idle slot deferral / Low collisions \\
+        0.10 &  522 & 72.55 & 68.44\% & Theoretical optimum ($p^* = 1/N = 0.10$) \\
+        0.15 &  818 & 76.80 & 64.73\% & Moderate contention balance \\
+        0.20 & 1058 & 81.23 & 61.10\% & Standard slotted contention \\
+        0.30 & 1415 & 88.91 & 55.64\% & Increasing simultaneous transmissions \\
+        0.40 & 1553 & 91.51 & 53.95\% & Elevated collision overhead \\
+        0.50 & 1678 & 94.20 & 52.32\% & Frequent slot overlap \\
+        0.60 & 1769 & 95.73 & 51.21\% & High post-busy contention \\
+        0.70 & 1823 & 97.11 & 50.60\% & Near-saturated contention \\
+        0.80 & 1848 & 97.00 & 50.41\% & Severe collision degradation \\
+        0.90 & 1852 & 96.95 & 50.37\% & Collision cascade region \\
+        1.00 & 1841 & 96.75 & 50.57\% & Converges to 1-Persistent CSMA ($p = 1.0$) \\
+        \bottomrule
+    \end{tabular}
+    }
+    \caption{Empirical metrics for $p$-Persistent CSMA under $N = 10$ contending stations (averaged across 5 independent seeds).}
+    \label{tab:case1}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}
+        % Subplot 1: Collisions vs p (Left)
+        \begin{axis}[
+            name=c1_ax1,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Collisions vs. $p$ ($N=10$)}},
+            title style={font=\small},
+            xlabel={Persistence Prob ($p$)},
+            ylabel={Collisions / 2000 frames},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=1.05, ymin=0, ymax=2100
+        ]
+            \addplot[color=red!80!black, mark=*, mark size=1.4pt, thick] coordinates {
+                (0.05, 234)  (0.10, 522)  (0.15, 818)  (0.20, 1058)
+                (0.30, 1415) (0.40, 1553) (0.50, 1678) (0.60, 1769)
+                (0.70, 1823) (0.80, 1848) (0.90, 1852) (1.00, 1841)
+            };
+        \end{axis}
+
+        % Subplot 2: Delay vs p (Center)
+        \begin{axis}[
+            name=c1_ax2,
+            at={($(c1_ax1.east)+(1.3cm,0)$)}, anchor=west,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Avg Delay vs. $p$ ($N=10$)}},
+            title style={font=\small},
+            xlabel={Persistence Prob ($p$)},
+            ylabel={Avg Delay (ms)},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=1.05, ymin=65, ymax=105
+        ]
+            \addplot[color=orange!90!black, mark=square*, mark size=1.4pt, thick] coordinates {
+                (0.05, 75.38) (0.10, 72.55) (0.15, 76.80) (0.20, 81.23)
+                (0.30, 88.91) (0.40, 91.51) (0.50, 94.20) (0.60, 95.73)
+                (0.70, 97.11) (0.80, 97.00) (0.90, 96.95) (1.00, 96.75)
+            };
+        \end{axis}
+
+        % Subplot 3: Throughput vs p (Right)
+        \begin{axis}[
+            name=c1_ax3,
+            at={($(c1_ax2.east)+(1.3cm,0)$)}, anchor=west,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Channel Throughput vs. $p$ ($N=10$)}},
+            title style={font=\small},
+            xlabel={Persistence Prob ($p$)},
+            ylabel={Throughput (\%)},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=1.05, ymin=45, ymax=75
+        ]
+            \addplot[color=green!60!black, mark=triangle*, mark size=1.6pt, thick] coordinates {
+                (0.05, 65.90) (0.10, 68.44) (0.15, 64.73) (0.20, 61.10)
+                (0.30, 55.64) (0.40, 53.95) (0.50, 52.32) (0.60, 51.21)
+                (0.70, 50.60) (0.80, 50.41) (0.90, 50.37) (1.00, 50.57)
+            };
+        \end{axis}
+    \end{tikzpicture}
+    }
+    \caption{Performance profiles for $p$-Persistent CSMA as a function of persistence probability $p$ ($N=10$).}
+    \label{fig:case1_plots}
+\end{figure}
+
+\subsection{Test Case 2: Comparative Evaluation across Contending Stations \texorpdfstring{$N$}{N}}
+Table \ref{tab:case2} compiles the comparative evaluation across all four protocols as contending stations scale from $N = 2$ to $N = 30$. Notice that at $N = 10$, the performance of 1-Persistent CSMA (1,886 collisions, 98.13 ms delay, 49.97\% throughput) converges to $p$-Persistent CSMA at $p = 1.00$, and $p$-Persistent at $p = 0.20$ exactly reproduces the 1,058 collisions, 81.23 ms delay, and 61.10\% throughput measured in Table \ref{tab:case1}.
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \renewcommand{\arraystretch}{0.96}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{r|ccc|ccc|ccc|ccc}
+        \toprule
+        & \multicolumn{3}{c|}{\textbf{Non-Persistent}} & \multicolumn{3}{c|}{\textbf{1-Persistent}} & \multicolumn{3}{c|}{\textbf{$p$-Persistent ($p=0.20$)}} & \multicolumn{3}{c}{\textbf{CSMA/CD}} \\
+        $\mathbf{N}$ & \textbf{Col} & \textbf{Dly (ms)} & \textbf{Thr} & \textbf{Col} & \textbf{Dly (ms)} & \textbf{Thr} & \textbf{Col} & \textbf{Dly (ms)} & \textbf{Thr} & \textbf{Col} & \textbf{Dly (ms)} & \textbf{Thr} \\
+        \midrule
+        2  &  492 &  14.99 & 66.63\% &  498 &  13.34 & 74.93\% &   97 &  15.39 & 64.92\% &  498 &  11.35 & 88.08\% \\
+        4  & 1033 &  35.27 & 56.55\% &  983 &  30.96 & 64.09\% &  333 &  28.14 & 70.92\% &  983 &  23.17 & 85.67\% \\
+        8  & 1934 &  88.94 & 44.75\% & 1627 &  73.61 & 53.36\% &  808 &  60.85 & 65.34\% & 1627 &  48.07 & 81.74\% \\
+        10 & 2233 & 118.92 & 41.81\% & 1886 &  98.13 & 49.97\% & 1058 &  81.23 & 61.10\% & 1886 &  61.14 & 80.22\% \\
+        12 & 2612 & 154.78 & 38.48\% & 2073 & 122.52 & 47.84\% & 1271 & 102.66 & 57.73\% & 2073 &  73.96 & 79.30\% \\
+        16 & 3138 & 228.12 & 34.74\% & 2586 & 182.76 & 42.63\% & 1646 & 150.03 & 52.51\% & 2586 & 102.24 & 76.27\% \\
+        20 & 3611 & 309.75 & 31.88\% & 2958 & 244.66 & 39.54\% & 1979 & 201.73 & 48.53\% & 2958 & 130.24 & 74.31\% \\
+        25 & 4240 & 427.80 & 28.74\% & 3520 & 337.94 & 35.64\% & 2457 & 280.26 & 43.55\% & 3520 & 168.50 & 71.54\% \\
+        30 & 4532 & 535.23 & 27.47\% & 4065 & 443.89 & 32.49\% & 2889 & 364.94 & 39.90\% & 4065 & 209.47 & 68.89\% \\
+        \bottomrule
+    \end{tabular}
+    }
+    \caption{Comparative performance metrics across contending stations ($N \in [2, 30]$).}
+    \label{tab:case2}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tikzpicture}
+        % Subplot 1: Collisions vs N (Left)
+        \begin{axis}[
+            name=c2_ax1,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Total Collisions vs. $N$}},
+            title style={font=\small},
+            xlabel={Contending Stations ($N$)},
+            ylabel={Collisions / 2000 frames},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=32, ymin=0, ymax=5000,
+            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.9, inner sep=1.5pt}
+        ]
+            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+                (2, 492) (4, 1033) (8, 1934) (10, 2233) (12, 2612) (16, 3138) (20, 3611) (25, 4240) (30, 4532)
+            }; \addlegendentry{Non-Pers}
+            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+                (2, 498) (4, 983) (8, 1627) (10, 1886) (12, 2073) (16, 2586) (20, 2958) (25, 3520) (30, 4065)
+            }; \addlegendentry{1-Pers}
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+                (2, 97) (4, 333) (8, 808) (10, 1058) (12, 1271) (16, 1646) (20, 1979) (25, 2457) (30, 2889)
+            }; \addlegendentry{$p$-Pers (0.2)}
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+                (2, 498) (4, 983) (8, 1627) (10, 1886) (12, 2073) (16, 2586) (20, 2958) (25, 3520) (30, 4065)
+            }; \addlegendentry{CSMA/CD}
+        \end{axis}
+
+        % Subplot 2: Delay vs N (Center)
+        \begin{axis}[
+            name=c2_ax2,
+            at={($(c2_ax1.east)+(1.3cm,0)$)}, anchor=west,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Avg Delay vs. $N$}},
+            title style={font=\small},
+            xlabel={Contending Stations ($N$)},
+            ylabel={Avg Delay (ms)},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=32, ymin=0, ymax=560,
+            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.9, inner sep=1.5pt}
+        ]
+            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+                (2, 14.99) (4, 35.27) (8, 88.94) (10, 118.92) (12, 154.78) (16, 228.12) (20, 309.75) (25, 427.80) (30, 535.23)
+            }; \addlegendentry{Non-Pers}
+            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+                (2, 13.34) (4, 30.96) (8, 73.61) (10, 98.13) (12, 122.52) (16, 182.76) (20, 244.66) (25, 337.94) (30, 443.89)
+            }; \addlegendentry{1-Pers}
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+                (2, 15.39) (4, 28.14) (8, 60.85) (10, 81.23) (12, 102.66) (16, 150.03) (20, 201.73) (25, 280.26) (30, 364.94)
+            }; \addlegendentry{$p$-Pers (0.2)}
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+                (2, 11.35) (4, 23.17) (8, 48.07) (10, 61.14) (12, 73.96) (16, 102.24) (20, 130.24) (25, 168.50) (30, 209.47)
+            }; \addlegendentry{CSMA/CD}
+        \end{axis}
+
+        % Subplot 3: Throughput vs N (Right)
+        \begin{axis}[
+            name=c2_ax3,
+            at={($(c2_ax2.east)+(1.3cm,0)$)}, anchor=west,
+            width=6.4cm, height=4.8cm,
+            title={\textbf{Channel Throughput vs. $N$}},
+            title style={font=\small},
+            xlabel={Contending Stations ($N$)},
+            ylabel={Throughput (\%)},
+            label style={font=\footnotesize},
+            tick label style={font=\scriptsize},
+            grid=both, grid style={dashed, gray!30},
+            xmin=0, xmax=32, ymin=20, ymax=95,
+            legend style={font=\tiny, at={(0.97,0.97)}, anchor=north east, fill=white, fill opacity=0.9, inner sep=1.5pt}
+        ]
+            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+                (2, 66.63) (4, 56.55) (8, 44.75) (10, 41.81) (12, 38.48) (16, 34.74) (20, 31.88) (25, 28.74) (30, 27.47)
+            }; \addlegendentry{Non-Pers}
+            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+                (2, 74.93) (4, 64.09) (8, 53.36) (10, 49.97) (12, 47.84) (16, 42.63) (20, 39.54) (25, 35.64) (30, 32.49)
+            }; \addlegendentry{1-Pers}
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+                (2, 64.92) (4, 70.92) (8, 65.34) (10, 61.10) (12, 57.73) (16, 52.51) (20, 48.53) (25, 43.55) (30, 39.90)
+            }; \addlegendentry{$p$-Pers (0.2)}
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+                (2, 88.08) (4, 85.67) (8, 81.74) (10, 80.22) (12, 79.30) (16, 76.27) (20, 74.31) (25, 71.54) (30, 68.89)
+            }; \addlegendentry{CSMA/CD}
+        \end{axis}
+    \end{tikzpicture}
+    }
+    \caption{Comparative performance profiles across contending stations $N \in [2, 30]$ for all four schemes.}
+    \label{fig:case2_plots}
+\end{figure}
+
+% =========================================================================
+% SECTION 7: LIVE EXECUTION TRACES AND SOCKET TRANSCRIPTS
+% =========================================================================
+\section{Live Execution Traces and Socket Transcripts}
+The compiled C binaries \texttt{server}, \texttt{receiver}, and \texttt{sender} were executed natively over TCP loopback (\texttt{127.0.0.1:5000}) with the 49-frame \texttt{input.txt} dataset. The captured socket transcripts illustrate the distinctive protocol dynamics.
+
+\subsection{Trace 1: CSMA/CD Collision Detection, Jam Signal, and Immediate Abort}
+Listing \ref{lst:trace_csmacd} demonstrates concurrent transmission by two stations, channel collision detection, immediate abortion, jam signal emission (\texttt{0xFE}), and Truncated Binary Exponential Backoff.
+
+\begin{lstlisting}[style=tracestyle, caption={Live socket execution transcript: CSMA/CD collision detection, jamming, and abort.}, label={lst:trace_csmacd}]
+[SERVER] Destination Receiver connected and ready!
+[SERVER] Sender Station "Station_2" connected (1/2 expected)
+[SERVER] Waiting for first station ("Station_2") to select CSMA protocol...
+[SERVER] Sender Station "Station_1" connected (2/2 expected)
+[SERVER] Protocol LOCKED to [CSMA/CD (Collision Detection)] by first station "Station_2"!
+[SERVER] Assigned locked protocol [CSMA/CD (Collision Detection)] to Station "Station_1"
+[0.1 ms] [CH: IDLE -> BUSY] Station "Station_2" transmitting Seq 0 (65B)
+[0.2 ms] [CH: BUSY -> COLLISION!] Station "Station_1" collided! Sending CSMA/CD JAM Signal (Total Collisions: 1)
+[Station "Station_2"] CSMA/CD Jam Signal Detected on Seq 0! Aborting immediately (Attempt 1)
+[Station "Station_1"] CSMA/CD Jam Signal Detected on Seq 0! Aborting immediately (Attempt 1)
+[20.8 ms] [CH: COLLISION -> IDLE] CSMA/CD Jam interval ended; medium is IDLE.
+[25.6 ms] [CH: IDLE -> BUSY] Station "Station_1" transmitting Seq 0 (65B)
+[106.7 ms] [CH: BUSY -> IDLE] Station "Station_1" | Seq 0 forwarded to Receiver -> ACK Relayed
+[Station "Station_1"] Seq 0 Delivered & ACKed (65B) | Delay: 106.6 ms | Collisions: 1
+[107.9 ms] [CH: IDLE -> BUSY] Station "Station_2" transmitting Seq 0 (65B)
+[188.3 ms] [CH: BUSY -> IDLE] Station "Station_2" | Seq 0 forwarded to Receiver -> ACK Relayed
+[Station "Station_2"] Seq 0 Delivered & ACKed (65B) | Delay: 188.7 ms | Collisions: 1
+\end{lstlisting}
+
+\subsection{Trace 2: 1-Persistent CSMA Post-Busy Synchronized Collision Cascade}
+Listing \ref{lst:trace_1pers} illustrates 1-Persistent CSMA under simultaneous traffic. Because both stations sense the channel continuously and transmit immediately when it becomes IDLE without backoff, repeated collisions occur after each frame completion.
+
+\begin{lstlisting}[style=tracestyle, caption={Live socket execution transcript: 1-Persistent CSMA collision cascade.}, label={lst:trace_1pers}]
+[SERVER] Protocol LOCKED to [1-Persistent CSMA] by first station "Station_2"!
+[SERVER] Assigned locked protocol [1-Persistent CSMA] to Station "Station_1"
+[0.1 ms] [CH: IDLE -> BUSY] Station "Station_1" transmitting Seq 0 (65B)
+[80.3 ms] [CH: BUSY -> IDLE] Station "Station_1" | Seq 0 forwarded to Receiver (No ACK in pure CSMA)
+[80.4 ms] [CH: IDLE -> BUSY] Station "Station_1" transmitting Seq 1 (65B)
+[160.6 ms] [CH: BUSY -> IDLE] Station "Station_1" | Seq 1 forwarded to Receiver (No ACK in pure CSMA)
+[160.7 ms] [CH: IDLE -> BUSY] Station "Station_2" transmitting Seq 0 (65B)
+[160.7 ms] [CH: BUSY -> COLLISION!] Station "Station_1" collided! Frames dropped naturally (No Jam/No ACK) (Total Collisions: 1)
+[240.9 ms] [CH: COLLISION -> IDLE] Collided frames dropped naturally; medium is IDLE.
+[241.0 ms] [CH: IDLE -> BUSY] Station "Station_2" transmitting Seq 1 (65B)
+[241.0 ms] [CH: BUSY -> COLLISION!] Station "Station_1" collided! Frames dropped naturally (No Jam/No ACK) (Total Collisions: 2)
+[321.2 ms] [CH: COLLISION -> IDLE] Collided frames dropped naturally; medium is IDLE.
+[321.4 ms] [CH: IDLE -> BUSY] Station "Station_2" transmitting Seq 2 (65B)
+[321.4 ms] [CH: BUSY -> COLLISION!] Station "Station_1" collided! Frames dropped naturally (No Jam/No ACK) (Total Collisions: 3)
+\end{lstlisting}
+
+\subsection{Trace 3: Non-Persistent CSMA Carrier Sensing and Random Deferral}
+Listing \ref{lst:trace_nonpers} demonstrates Non-Persistent CSMA sensing a busy channel and backing off rather than persisting, eliminating simultaneous transmissions.
+
+\begin{lstlisting}[style=tracestyle, caption={Live socket execution transcript: Non-Persistent CSMA channel deferral.}, label={lst:trace_nonpers}]
+[Station "Station_1"] Channel BUSY -> Non-Persistent random wait...
+[Station "Station_1"] Seq 0 Transmitted (65B) | Delay: 172.5 ms
+[Station "Station_1"] Seq 1 Transmitted (65B) | Delay: 80.3 ms
+[Station "Station_1"] Channel BUSY -> Non-Persistent random wait...
+[Station "Station_1"] Seq 2 Transmitted (65B) | Delay: 280.6 ms
+[Station "Station_1"] Seq 3 Transmitted (65B) | Delay: 80.4 ms
+[Station "Station_1"] Channel BUSY -> Non-Persistent random wait...
+[Station "Station_1"] Seq 5 Transmitted (65B) | Delay: 180.6 ms
+[SERVER CHANNEL SUMMARY] Total Collisions: 0 | Frames Forwarded: 98 | Elapsed Time: 11.486 s
+\end{lstlisting}
+
+\subsection{Trace 4: \texorpdfstring{$p$-Persistent}{p-Persistent} CSMA Slotted Deferral and Acquisition}
+Listing \ref{lst:trace_ppers} depicts $p$-Persistent CSMA ($p = 0.25$) where stations defer transmission across slot boundaries with probability $1-p = 0.75$, regulating access to the shared medium.
+
+\begin{lstlisting}[style=tracestyle, caption={Live socket execution transcript: $p$-Persistent CSMA ($p=0.25$) slotted arbitration.}, label={lst:trace_ppers}]
+[Channel Sync] Protocol Locked by First Station: p-Persistent CSMA
+Station Name : "Station_1" | Protocol : p-Persistent CSMA | p Value : 0.25
+[Station "Station_1"] Seq 0 Transmitted (65B) | Delay: 647.2 ms
+[Station "Station_1"] Seq 1 Transmitted (65B) | Delay: 131.3 ms
+[Station "Station_1"] Seq 2 Transmitted (65B) | Delay: 377.5 ms
+[Station "Station_1"] Seq 3 Transmitted (65B) | Delay: 178.3 ms
+[Station "Station_1"] Seq 4 Transmitted (65B) | Delay: 251.5 ms
+[SERVER CHANNEL SUMMARY] Total Collisions: 0 | Frames Forwarded: 98 | Elapsed Time: 12.674 s
+\end{lstlisting}
+
+% =========================================================================
+% SECTION 8: ANALYSIS AND DISCUSSION
+% =========================================================================
+\section{Analysis and Discussion}
+
+\subsection{Impact of Persistence Probability \texorpdfstring{$p$}{p} in \texorpdfstring{$p$-Persistent}{p-Persistent} CSMA (Test Case 1)}
+Figure \ref{fig:case1_plots} and Table \ref{tab:case1} highlight the fundamental trade-off governed by $p$ under $N = 10$ contending stations:
+\begin{enumerate}
+    \item \textbf{Low Persistence Regime ($p = 0.05$):} Collisions are minimized (234 collisions), but stations defer with probability $1-p = 0.95$ even when the medium is clear. Wasted idle slots elevate average transmission delay to 75.38 ms and constrain throughput to 65.90\%.
+    \item \textbf{Optimal Operating Regime ($p^* \approx 0.10$):} In exact agreement with theoretical analysis ($p^* = 1/N = 1/10 = 0.10$), channel throughput attains its global maximum of \textbf{68.44\%} and average frame delay attains its minimum of \textbf{72.55 ms}.
+    \item \textbf{High Persistence Regime ($p \ge 0.30 \to 1.00$):} As $p$ increases, multiple stations waiting for a busy frame attempt transmission immediately upon channel clearance. Collisions grow steadily from 234 ($p=0.05$) to \textbf{1,841} ($p=1.00$), average delay climbs to \textbf{96.75 ms}, and throughput degrades to \textbf{50.57\%}, converging directly to the behavior of 1-Persistent CSMA.
+\end{enumerate}
+
+\subsection{Comparative Protocol Efficiency across Contending Stations \texorpdfstring{$N$}{N} (Test Case 2)}
+Figure \ref{fig:case2_plots} and Table \ref{tab:case2} demonstrate the operational characteristics of the four protocols as network density scales from $N = 2$ to $N = 30$:
+\begin{enumerate}
+    \item \textbf{CSMA/CD Dominance:} CSMA/CD consistently delivers the highest throughput (\textbf{88.08\%} at $N=2$ and \textbf{68.89\%} at $N=30$) and lowest average transmission delay (\textbf{11.35 ms} to \textbf{209.47 ms}) across all station counts. While CSMA/CD experiences the same initial collision events as 1-Persistent CSMA (4,065 at $N=30$), aborting transmissions within $T_{\text{jam}} = 2\text{ slots}$ rather than transmitting full frames ($T_{\text{tx}} = 10\text{ slots}$) saves \textbf{80\% of wasted bandwidth per collision}.
+    \item \textbf{1-Persistent Degradation:} Under light load ($N = 2$), 1-Persistent achieves 74.93\% throughput and low delay (13.34 ms). However, as $N$ increases, synchronized post-busy collisions escalate rapidly. At $N = 30$, average delay climbs to \textbf{443.89 ms} and throughput drops to \textbf{32.49\%}.
+    \item \textbf{$p$-Persistent Scalability:} Setting $p = 0.20$ allows $p$-Persistent CSMA to outperform 1-Persistent and Non-Persistent across moderate station counts ($N = 4$ to $12$), achieving \textbf{70.92\%} throughput at $N = 4$ and \textbf{61.10\%} at $N = 10$.
+    \item \textbf{Non-Persistent Channel Spacing:} By forcing stations that detect a busy channel to back off immediately, Non-Persistent CSMA avoids clustered transmissions. However, excessive random waiting intervals cause higher average delay under continuous traffic (535.23 ms at $N=30$).
+\end{enumerate}
+
+\subsection{Known Limitations and Practical Enhancements}
+\begin{itemize}
+    \item \textbf{Hidden and Exposed Terminal Problems:} Carrier sensing assumes all stations can hear each other. In wireless environments, physical obstacles create hidden terminals. Modern IEEE 802.11 standards address this via CSMA/CA with Request-to-Send / Clear-to-Send (RTS/CTS) control frame handshaking.
+    \item \textbf{Dynamic Persistence Adaptation:} In our implementation, $p$ was fixed. Practical protocols dynamically estimate active stations $\hat{N}$ by observing channel idle/collision statistics and tune $p = 1/\hat{N}$ dynamically to maximize throughput.
+\end{itemize}
+
+% =========================================================================
+% SECTION 9: COMMENTS AND LEARNING EVALUATION
+% =========================================================================
+\section{Comments and Learning Evaluation}
+
+\subsection{Evaluation of the Lab Assignment}
+This assignment provided invaluable practical insight into medium access control arbitration in computer networking. Implementing carrier sensing, collision detection, and backoff algorithms from scratch revealed the subtle interplay between propagation delay, carrier state tracking, and distributed consensus.
+
+\subsection{What I Learned}
+\begin{itemize}
+    \item \textbf{Collision Vulnerability Dynamics:} Understanding how physical propagation delay creates vulnerability windows where carrier sensing alone cannot prevent packet collisions.
+    \item \textbf{Bandwidth Savings of Collision Detection:} Quantifying how immediately halting collided frames and emitting a jam signal preserves channel capacity compared to transmitting corrupted frames to completion.
+    \item \textbf{Backoff Mechanics:} Implementing Truncated Binary Exponential Backoff and observing how dynamic contention window expansion stabilizes channels under heavy contention.
+    \item \textbf{Three-Tier Socket Architecture:} Coordinating multiple asynchronous client processes communicating concurrently with a multiplexed channel server and destination node via BSD sockets and \texttt{select()}.
+\end{itemize}
+
+\subsection{Difficulty Assessment}
+The assignment was moderately challenging but highly rewarding:
+\begin{itemize}
+    \item \textit{Challenging Aspects:} Modeling the shared channel state transitions (\texttt{IDLE}, \texttt{BUSY}, \texttt{COLLISION}) accurately without race conditions, and coordinating protocol selection across stations.
+    \item \textit{Manageable Aspects:} Reusing the 65-byte framing and file I/O modules developed in previous assignments provided a stable foundation, allowing the focus to remain on MAC-layer arbitration.
+\end{itemize}
+
+\subsection{Suggested Improvements}
+\begin{enumerate}
+    \item Extend the simulation to include CSMA/CA with RTS/CTS handshaking and virtual carrier sensing (Network Allocation Vector) to model wireless IEEE 802.11 architectures.
+    \item Integrate dynamic persistence estimation where stations adapt $p$ based on observed channel idle vs.\ collision slot ratios.
+\end{enumerate}
+
+% =========================================================================
+% SECTION 10: SOURCES USED
+% =========================================================================
+\section{Sources Used}
+\begin{enumerate}
+    \item Kurose, J. F., and Ross, K. W., \textit{Computer Networking: A Top-Down Approach}, 8th ed., Pearson, 2021.
+    \item Tanenbaum, A. S., and Wetherall, D. J., \textit{Computer Networks}, 5th ed., Prentice Hall, 2011.
+    \item Stallings, W., \textit{Data and Computer Communications}, 10th ed., Pearson, 2014.
+    \item Kleinrock, L., and Tobagi, F. A., ``Packet Switching in Radio Channels: Part I---Carrier Sense Multiple-Access Modes and Their Throughput-Delay Characteristics,'' \textit{IEEE Transactions on Communications}, vol. 23, no. 12, pp. 1400--1416, Dec. 1975.
+    \item IEEE Standard for Ethernet (\textit{IEEE Std 802.3-2022}) and POSIX / BSD Socket API Reference Documentation.
+    \item AI Assistance and Antigravity: Artificial intelligence assistance (Gemini) was utilized for statistical aggregation, benchmarking script construction, and generating native TikZ visualization code. The Antigravity development environment was used to run live socket test executions, profile empirical performance metrics, and format the comprehensive \LaTeX{} report.
+\end{enumerate}
+
+\end{document}

@@ -8,7 +8,6 @@
 #include <string.h>
 #include <time.h>
 
-/* Frame and File I/O modules */
 #include "frame.h"
 #include "fileio.h"
 
@@ -44,14 +43,12 @@
 #define STATION_NAME_LEN 32
 #define ACK_MARKER       0xA5
 
-/* Shared Channel States */
 typedef enum {
     CH_IDLE      = 0,
     CH_BUSY      = 1,
     CH_COLLISION = 2
 } ChannelState;
 
-/* CSMA Protocol Modes */
 typedef enum {
     PROTO_UNSET          = 0,
     PROTO_NON_PERSISTENT = 1,
@@ -60,30 +57,28 @@ typedef enum {
     PROTO_CSMA_CD        = 4
 } CSMAProtocol;
 
-/* Control Packet Opcodes between Senders, Channel Server, and Receiver */
 typedef enum {
-    MSG_REGISTER_RX     = 0x01, /* Receiver -> Server: Register destination receiver */
-    MSG_REGISTER        = 0x05, /* Sender -> Server: Register station name string */
-    MSG_PROTO_SYNC      = 0x06, /* Server -> Sender: [0x06, locked_proto] (0 if first sender) */
-    MSG_SET_PROTO       = 0x07, /* First Sender -> Server: [0x07, chosen_proto] */
-    MSG_SENSE_REQ       = 0x10, /* Sender -> Server: Sense carrier state */
-    MSG_SENSE_RESP      = 0x11, /* Server -> Sender: Replies CH_IDLE / CH_BUSY */
-    MSG_TX_START        = 0x20, /* Sender -> Server: Transmit 65-byte packed EthernetFrame */
-    MSG_FWD_FRAME_NOACK = 0x30, /* Server -> Receiver: Forward frame (No ACK, pure CSMA) */
-    MSG_FWD_FRAME_ACK   = 0x31, /* Server -> Receiver: Forward frame & request ACK (CSMA/CD only) */
-    MSG_TX_ACK          = 0xA5, /* Receiver -> Server -> Sender: 2-byte ACK [0xA5, seqNo] (CSMA/CD only) */
-    MSG_COLLISION       = 0xFE, /* Server -> Sender: Jamming signal (CSMA/CD only) */
-    MSG_STATION_DONE    = 0xFF  /* Sender -> Server / Server -> Receiver: All transmissions complete */
+    MSG_REGISTER_RX     = 0x01, 
+    MSG_REGISTER        = 0x05, 
+    MSG_PROTO_SYNC      = 0x06, /* Server -> Sender: [0x06, locked_proto, sync_flag] */
+    MSG_SET_MODE        = 0x08, /* First Sender -> Server: [0x08, sync_flag] */
+    MSG_SET_PROTO       = 0x07, /* Sender -> Server: [0x07, chosen_proto] */
+    MSG_SENSE_REQ       = 0x10, 
+    MSG_SENSE_RESP      = 0x11, 
+    MSG_TX_START        = 0x20, 
+    MSG_FWD_FRAME_NOACK = 0x30, /* Server -> Receiver: (No ACK, pure CSMA) */
+    MSG_FWD_FRAME_ACK   = 0x31, /* Server -> Receiver: (CSMA/CD only) */
+    MSG_TX_ACK          = 0xA5, /* Receiver -> Server -> Sender: 2-byte ACK */
+    MSG_COLLISION       = 0xFE, /* Server -> Sender: Jamming signal */
+    MSG_STATION_DONE    = 0xFF  
 } MsgType;
 
-/* Timing Parameters (ms) for Socket Emulation */
-#define SLOT_TIME_MS     25   /* Contention slot time (2 * T_prop) */
-#define TX_TIME_MS       80   /* Time to transmit 65-byte frame on medium */
-#define JAM_TIME_MS      20   /* Jamming recovery window (CSMA/CD only) */
-#define MAX_BACKOFF_EXP  10   /* IEEE 802.3 Binary Exponential Backoff cap */
-#define MAX_COLLISIONS   16   /* IEEE 802.3 max attempt limit */
+#define SLOT_TIME_MS     25   
+#define TX_TIME_MS       80   
+#define JAM_TIME_MS      20   
+#define MAX_BACKOFF_EXP  10   
+#define MAX_COLLISIONS   16   
 
-/* Helper to guarantee full TCP stream reads */
 static inline int recv_exact(sock_t s, unsigned char *buf, size_t len) {
     size_t got = 0;
     while (got < len) {
@@ -94,18 +89,16 @@ static inline int recv_exact(sock_t s, unsigned char *buf, size_t len) {
     return 0;
 }
 
-/* Helper to get human-readable CSMA protocol name */
 static inline const char* getProtocolName(CSMAProtocol proto) {
     switch (proto) {
         case PROTO_NON_PERSISTENT: return "Non-Persistent CSMA";
         case PROTO_1_PERSISTENT:   return "1-Persistent CSMA";
         case PROTO_P_PERSISTENT:   return "p-Persistent CSMA";
-        case PROTO_CSMA_CD:        return "CSMA/CD (Collision Detection)";
+        case PROTO_CSMA_CD:        return "CSMA/CD";
         default:                   return "Unset";
     }
 }
 
-/* Monotonic millisecond timer */
 static inline double get_time_ms(void) {
 #ifdef _WIN32
     LARGE_INTEGER freq, counter;
