@@ -276,77 +276,89 @@ The medium access emulation environment is structured as a modular 3-tier client
 
 \begin{figure}[H]
     \centering
-    \resizebox{0.86\textwidth}{!}{%
+    \resizebox{0.92\textwidth}{!}{%
     \begin{tikzpicture}[
         font=\footnotesize,
         >=Latex,
-        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
-        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
-        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=1.05cm, text width=3.7cm, align=center, font=\scriptsize, inner sep=2.5pt},
+        node distance=0.42cm,
+        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.8cm, text width=3.4cm, align=center, inner sep=3pt},
+        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.8cm, text width=3.4cm, align=center, inner sep=3pt},
+        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=0.95cm, text width=4.0cm, align=center, font=\scriptsize, inner sep=3.5pt},
         arrow/.style={->, thick, draw=black!75},
         retarrow/.style={->, thick, draw=blue!75!black}
     ]
-        % ==================== BACKGROUND CONTAINERS ====================
-        \begin{scope}[on background layer]
-            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (-0.4, -4.1) rectangle (3.8, 4.8);
-            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (5.3, -4.1) rectangle (9.7, 4.8);
-            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (11.2, -4.1) rectangle (15.4, 4.8);
-        \end{scope}
-
-        % Container Header Labels
-        \node[font=\bfseries\footnotesize, text=blue!85!black] at (1.7, 4.4) {Contending Stations (\texttt{sender})};
-        \node[font=\bfseries\footnotesize, text=red!80!black]  at (7.5, 4.4) {Shared Channel Server (\texttt{server})};
-        \node[font=\bfseries\footnotesize, text=teal!85!black] at (13.3, 4.4) {Destination Node (\texttt{receiver})};
+        % ==================== CONTAINER HEADER LABELS ====================
+        \node[font=\bfseries\footnotesize, text=blue!85!black] (h_send) at (1.7, 5.2) {Contending Stations (\texttt{sender})};
+        \node[font=\bfseries\footnotesize, text=red!80!black]  (h_serv) at (8.0, 5.2) {Shared Channel Server (\texttt{server})};
+        \node[font=\bfseries\footnotesize, text=teal!85!black] (h_recv) at (14.3, 5.2) {Destination Node (\texttt{receiver})};
 
         % ==================== SENDERS (x = 1.7) ====================
-        \node[block] (input)   at (1.7, 3.6)  {1. File Reader\\(\texttt{input.txt})};
-        \node[block] (frame)   at (1.7, 2.35) {2. \texttt{prepareStationFrame()}\\Build 65B Ethernet Frame};
-        \node[proc]  (sense)   at (1.7, 1.0)  {3. \texttt{senseCarrier()}\\CSMA Sensing Strategy};
-        \node[proc]  (send)    at (1.7, -0.35){4. \texttt{Send()}\\Socket Dispatch (65B)};
-        \node[proc]  (backoff) at (1.7, -1.85){8. \texttt{performBackoff()}\\BEB / Random Deferral};
-        \node[proc]  (resp)    at (1.7, -3.25){9. Ingest ACK / Jam\\Track Metrics (Delay, Col)};
+        \node[block, below=0.3cm of h_send]  (input)   {1. File Reader\\(\texttt{input.txt})};
+        \node[block, below=of input]         (frame)   {2. \texttt{prepareStationFrame()}\\Build 65B Ethernet Frame};
+        \node[proc,  below=of frame]         (sense)   {3. \texttt{senseCarrier()}\\CSMA Sensing Strategy};
+        \node[proc,  below=of sense]         (send)    {4. \texttt{Send()}\\Socket Dispatch (65B)};
+        \node[proc,  below=0.55cm of send]   (backoff) {8. \texttt{performBackoff()}\\BEB / Random Deferral};
+        \node[proc,  below=of backoff]       (resp)    {9. Ingest ACK / Jam\\Track Metrics (Delay, Col)};
 
-        % ==================== CHANNEL SERVER (x = 7.5) ====================
-        \node[chan] (c_sense) at (7.5, 1.0) {Carrier Sense Handler\\Replies \texttt{CH\_IDLE} / \texttt{CH\_BUSY}};
-        \node[chan] (c_arb)   at (7.5, -0.35){Collision Arbiter / FSM\\IDLE $\to$ BUSY ($T_{\text{tx}} = 80$ ms)\\Collision $\to$ Jam ($T_{\text{jam}} = 20$ ms)};
-        \node[chan, draw=blue!70!black] (c_fwd) at (7.5, -1.85){Forwarding Engine\\Clean: Forward to Receiver\\Collided: Drop / Broadcast Jam};
-        \node[chan, draw=teal!70!black] (c_ack) at (7.5, -3.25){ACK Relay (CSMA/CD)\\Relays Receiver ACK to Sender};
+        % ==================== CHANNEL SERVER (x = 8.0) ====================
+        % Utilizing full vertical height of the server container
+        \node[chan, below=0.85cm of h_serv]  (c_sense) {Carrier Sense Handler\\Replies \texttt{CH\_IDLE} / \texttt{CH\_BUSY}};
+        \node[chan, below=0.75cm of c_sense] (c_arb)   {Collision Arbiter / FSM\\IDLE $\to$ BUSY ($T_{\text{tx}} = 80$ ms)\\Collision $\to$ Jam ($T_{\text{jam}} = 20$ ms)};
+        \node[chan, draw=blue!70!black, below=0.75cm of c_arb] (c_fwd) {Forwarding Engine\\Clean: Forward to Receiver\\Collided: Drop / Broadcast Jam};
+        \node[chan, draw=teal!70!black, below=0.75cm of c_fwd] (c_ack) {ACK Relay (CSMA/CD)\\Relays Receiver ACK to Sender};
 
-        % ==================== RECEIVER (x = 13.3) ====================
-        \node[block] (rrecv)   at (13.3, -0.35){5. \texttt{Recv()}\\Socket Ingestion};
-        \node[block] (runpack) at (13.3, -1.85){6. \texttt{unpackFrame()}\\Header \& Payload Check};
-        \node[block] (rack)    at (13.3, -3.25){7. \texttt{SendACK()}\\Generate 2-Byte ACK (\texttt{0xA5})};
+        % ==================== RECEIVER (x = 14.3) ====================
+        \node[block] (rrecv) at (14.3, 0.45)           {5. \texttt{Recv()}\\Socket Ingestion};
+        \node[block, below=0.75cm of rrecv]  (runpack) {6. \texttt{unpackFrame()}\\Header \& Payload Check};
+        \node[block, below=0.75cm of runpack](rack)    {7. \texttt{SendACK()}\\Generate 2-Byte ACK (\texttt{0xA5})};
 
-        % ==================== ARROWS ====================
+        % ==================== BACKGROUND CONTAINERS ====================
+        \begin{scope}[on background layer]
+            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (-0.55, -4.3) rectangle (3.85, 5.6);
+            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (5.65, -4.3) rectangle (10.35, 5.6);
+            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (12.15, -4.3) rectangle (16.45, 5.6);
+        \end{scope}
+
+        % ==================== INTRA-COLUMN ARROWS ====================
         \draw[arrow] (input) -- (frame);
         \draw[arrow] (frame) -- (sense);
         \draw[arrow] (sense) -- (send);
 
-        % Sense request/reply
-        \draw[arrow, blue!70!black] ([yshift=4pt]sense.east) -- node[above=1pt, font=\scriptsize] {Sense Req} ([yshift=4pt]c_sense.west);
-        \draw[retarrow] ([yshift=-4pt]c_sense.west) -- node[below=1pt, font=\scriptsize] {State Resp} ([yshift=-4pt]sense.east);
-
-        % TX Frame
-        \draw[arrow] (send.east) -- node[above=2pt, font=\scriptsize] {65B Frame} (c_arb.west);
-
-        % Arbiter to forwarding
         \draw[arrow] (c_arb.south) -- (c_fwd.north);
 
-        % Forward clean frame to receiver
-        \draw[arrow, teal!80!black] (c_fwd.east) -- ++(0.95, 0) |- node[pos=0.25, right=1pt, font=\scriptsize] {Clean Frame} (rrecv.west);
-        \draw[arrow] (rrecv) -- (runpack);
+        \draw[arrow] (rrecv)   -- (runpack);
         \draw[arrow] (runpack) -- (rack);
 
-        % Receiver ACK back to Server
-        \draw[retarrow] (rack.west) -- node[above=2pt, font=\scriptsize] {2B ACK} (c_ack.east);
+        % ==================== INTER-COLUMN ARROWS ====================
+        % 1. Sense Request & State Response (Orthogonal routing to upper server block)
+        \draw[arrow, blue!70!black] ([yshift=4pt]sense.east) -- ++(0.65, 0) |- ([yshift=4pt]c_sense.west)
+            node[pos=0.72, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {Sense Req};
+        \draw[retarrow] ([yshift=-4pt]c_sense.west) -- ++(-0.9, 0) |- ([yshift=-4pt]sense.east)
+            node[pos=0.7, below=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {State Resp};
 
-        % Server relay ACK or Jam to sender
-        \draw[retarrow] (c_ack.west) -- node[above=2pt, font=\scriptsize] {Relay ACK} (resp.east);
-        \draw[arrow, red!70!black] (c_fwd.west) -- node[above=2pt, font=\scriptsize] {Jam (0xFE)} (backoff.east);
+        % 2. TX 65B Frame (Sender -> Collision Arbiter)
+        \draw[arrow] (send.east) -- ++(0.9, 0) |- (c_arb.west)
+            node[pos=0.75, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {65B Frame};
 
-        % Backoff feedback
-        \draw[arrow, blue!75!black] (backoff.west) -- ++(-0.35, 0) |- ([yshift=-4pt]sense.west);
-        \draw[arrow, blue!75!black] (resp.west) -- ++(-0.6, 0) |- (frame.west);
+        % 3. Clean Frame (Forwarding Engine -> Receiver)
+        \draw[arrow, teal!80!black] (c_fwd.east) -- ++(0.9, 0) |- (rrecv.west)
+            node[pos=0.25, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {Clean Frame};
+
+        % 4. Receiver 2B ACK -> Server ACK Relay
+        \draw[retarrow] (rack.west) -- ++(-0.9, 0) |- (c_ack.east)
+            node[pos=0.25, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {2B ACK};
+
+        % 5. Jam Signal (Forwarding Engine -> Sender Backoff)
+        \draw[arrow, red!70!black] (c_fwd.west) -- ++(-0.9, 0) |- (backoff.east)
+            node[pos=0.75, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {Jam (\texttt{0xFE})};
+
+        % 6. Relay ACK (Server ACK Relay -> Sender Ingest ACK)
+        \draw[retarrow] (c_ack.west) -- ++(-0.9, 0) |- (resp.east)
+            node[pos=0.75, above=1.5pt, font=\scriptsize, fill=white, inner sep=1pt] {Relay ACK};
+
+        % ==================== SENDER FEEDBACK LOOPS ====================
+        \draw[arrow, blue!75!black] (backoff.west) -- ++(-0.32, 0) |- ([yshift=-4pt]sense.west);
+        \draw[arrow, blue!75!black] (resp.west)    -- ++(-0.55, 0) |- (frame.west);
 
     \end{tikzpicture}%
     }
@@ -738,94 +750,101 @@ Table \ref{tab:case2} compiles the comparative evaluation across all four protoc
 
 \begin{figure}[H]
     \centering
-    \resizebox{\textwidth}{!}{
+    \resizebox{0.82\textwidth}{!}{%
     \begin{tikzpicture}
-        % Subplot 1: Collisions vs N (Left)
+        % Subplot 1: Collisions vs N (Top Left)
         \begin{axis}[
             name=c2_ax1,
-            width=6.4cm, height=4.8cm,
-            title={\textbf{Total Collisions vs. $N$}},
-            title style={font=\small},
+            width=9cm, height=6.8cm,
+            title={\textbf{Total Collisions vs.\ $N$}},
+            title style={font=\small, yshift=1pt},
             xlabel={Contending Stations ($N$)},
             ylabel={Collisions / 2000 frames},
-            label style={font=\footnotesize},
+            ylabel style={font=\footnotesize, yshift=-4pt},
+            xlabel style={font=\footnotesize, yshift=2pt},
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=0, xmax=32, ymin=0, ymax=5000,
-            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.9, inner sep=1.5pt}
+            xmin=0, xmax=32, ymin=-500, ymax=6300,
+            ytick={0, 1500, 3000, 4500, 6000},
+            scaled y ticks=false,
+            legend style={font=\small, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.95, text opacity=1, inner sep=2pt}
         ]
-            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+            \addplot[color=blue!70!black, mark=o, mark size=1.6pt, thick] coordinates {
                 (2, 492) (4, 1033) (8, 1934) (10, 2233) (12, 2612) (16, 3138) (20, 3611) (25, 4240) (30, 4532)
             }; \addlegendentry{Non-Pers}
-            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+            \addplot[color=red!80!black, mark=square, mark size=1.6pt, thick] coordinates {
                 (2, 498) (4, 983) (8, 1627) (10, 1886) (12, 2073) (16, 2586) (20, 2958) (25, 3520) (30, 4065)
             }; \addlegendentry{1-Pers}
-            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.8pt, thick] coordinates {
                 (2, 97) (4, 333) (8, 808) (10, 1058) (12, 1271) (16, 1646) (20, 1979) (25, 2457) (30, 2889)
             }; \addlegendentry{$p$-Pers (0.2)}
-            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.8pt, thick] coordinates {
                 (2, 498) (4, 983) (8, 1627) (10, 1886) (12, 2073) (16, 2586) (20, 2958) (25, 3520) (30, 4065)
             }; \addlegendentry{CSMA/CD}
         \end{axis}
 
-        % Subplot 2: Delay vs N (Center)
+        % Subplot 2: Delay vs N (Top Right)
         \begin{axis}[
             name=c2_ax2,
-            at={($(c2_ax1.east)+(1.3cm,0)$)}, anchor=west,
-            width=6.4cm, height=4.8cm,
-            title={\textbf{Avg Delay vs. $N$}},
-            title style={font=\small},
+            at={($(c2_ax1.east)+(2.0cm,0)$)}, anchor=west,
+            width=9cm, height=6.8cm,
+            title={\textbf{Avg Delay vs.\ $N$}},
+            title style={font=\small, yshift=1pt},
             xlabel={Contending Stations ($N$)},
             ylabel={Avg Delay (ms)},
-            label style={font=\footnotesize},
+            ylabel style={font=\footnotesize, yshift=-6pt},
+            xlabel style={font=\footnotesize, yshift=2pt},
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=0, xmax=32, ymin=0, ymax=560,
-            legend style={font=\tiny, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.9, inner sep=1.5pt}
+            xmin=0, xmax=32, ymin=-50, ymax=600,
+            legend style={font=\small, at={(0.03,0.97)}, anchor=north west, fill=white, fill opacity=0.95, text opacity=1, inner sep=2pt}
         ]
-            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+            \addplot[color=blue!70!black, mark=o, mark size=1.6pt, thick] coordinates {
                 (2, 14.99) (4, 35.27) (8, 88.94) (10, 118.92) (12, 154.78) (16, 228.12) (20, 309.75) (25, 427.80) (30, 535.23)
             }; \addlegendentry{Non-Pers}
-            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+            \addplot[color=red!80!black, mark=square, mark size=1.6pt, thick] coordinates {
                 (2, 13.34) (4, 30.96) (8, 73.61) (10, 98.13) (12, 122.52) (16, 182.76) (20, 244.66) (25, 337.94) (30, 443.89)
             }; \addlegendentry{1-Pers}
-            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.8pt, thick] coordinates {
                 (2, 15.39) (4, 28.14) (8, 60.85) (10, 81.23) (12, 102.66) (16, 150.03) (20, 201.73) (25, 280.26) (30, 364.94)
             }; \addlegendentry{$p$-Pers (0.2)}
-            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.8pt, thick] coordinates {
                 (2, 11.35) (4, 23.17) (8, 48.07) (10, 61.14) (12, 73.96) (16, 102.24) (20, 130.24) (25, 168.50) (30, 209.47)
             }; \addlegendentry{CSMA/CD}
         \end{axis}
 
-        % Subplot 3: Throughput vs N (Right)
+        % Subplot 3: Throughput vs N (Bottom Center)
         \begin{axis}[
             name=c2_ax3,
-            at={($(c2_ax2.east)+(1.3cm,0)$)}, anchor=west,
-            width=6.4cm, height=4.8cm,
-            title={\textbf{Channel Throughput vs. $N$}},
-            title style={font=\small},
+            at={($(c2_ax1.south)!0.5!(c2_ax2.south)-(0,1.45cm)$)}, anchor=north,
+            width=10cm, height=6.8cm,
+            title={\textbf{Channel Throughput vs.\ $N$}},
+            title style={font=\small, yshift=1pt},
             xlabel={Contending Stations ($N$)},
             ylabel={Throughput (\%)},
-            label style={font=\footnotesize},
+            ylabel style={font=\footnotesize, yshift=-6pt},
+            xlabel style={font=\footnotesize, yshift=2pt},
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=0, xmax=32, ymin=20, ymax=95,
-            legend style={font=\tiny, at={(0.97,0.97)}, anchor=north east, fill=white, fill opacity=0.9, inner sep=1.5pt}
+            xmin=0, xmax=32, ymin=20, ymax=118,
+            ytick={20, 40, 60, 80, 100},
+            legend columns=2,
+            legend style={font=\small, at={(0.97,0.97)}, anchor=north east, fill=white, fill opacity=0.95, text opacity=1, inner sep=2pt, column sep=3pt}
         ]
-            \addplot[color=blue!70!black, mark=o, mark size=1.4pt, thick] coordinates {
+            \addplot[color=blue!70!black, mark=o, mark size=1.6pt, thick] coordinates {
                 (2, 66.63) (4, 56.55) (8, 44.75) (10, 41.81) (12, 38.48) (16, 34.74) (20, 31.88) (25, 28.74) (30, 27.47)
             }; \addlegendentry{Non-Pers}
-            \addplot[color=red!80!black, mark=square, mark size=1.4pt, thick] coordinates {
+            \addplot[color=red!80!black, mark=square, mark size=1.6pt, thick] coordinates {
                 (2, 74.93) (4, 64.09) (8, 53.36) (10, 49.97) (12, 47.84) (16, 42.63) (20, 39.54) (25, 35.64) (30, 32.49)
             }; \addlegendentry{1-Pers}
-            \addplot[color=violet!80!black, mark=triangle, mark size=1.5pt, thick] coordinates {
+            \addplot[color=violet!80!black, mark=triangle, mark size=1.8pt, thick] coordinates {
                 (2, 64.92) (4, 70.92) (8, 65.34) (10, 61.10) (12, 57.73) (16, 52.51) (20, 48.53) (25, 43.55) (30, 39.90)
             }; \addlegendentry{$p$-Pers (0.2)}
-            \addplot[color=green!60!black, mark=diamond*, mark size=1.5pt, thick] coordinates {
+            \addplot[color=green!60!black, mark=diamond*, mark size=1.8pt, thick] coordinates {
                 (2, 88.08) (4, 85.67) (8, 81.74) (10, 80.22) (12, 79.30) (16, 76.27) (20, 74.31) (25, 71.54) (30, 68.89)
             }; \addlegendentry{CSMA/CD}
         \end{axis}
-    \end{tikzpicture}
+    \end{tikzpicture}%
     }
     \caption{Comparative performance profiles across contending stations $N \in [2, 30]$ for all four schemes.}
     \label{fig:case2_plots}

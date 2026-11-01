@@ -279,67 +279,76 @@ The CDMA emulation environment is organized as a modular 3-tier client-server pi
 
 \begin{figure}[H]
     \centering
-    \resizebox{0.88\textwidth}{!}{%
+    \resizebox{0.94\textwidth}{!}{%
     \begin{tikzpicture}[
         font=\footnotesize,
         >=Latex,
-        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
-        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.72cm, text width=3.3cm, align=center, inner sep=2.5pt},
-        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=0.95cm, text width=3.8cm, align=center, font=\scriptsize, inner sep=2.5pt},
+        node distance=0.42cm,
+        block/.style={rectangle, draw=blue!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.8cm, text width=3.4cm, align=center, inner sep=3pt},
+        proc/.style={rectangle, draw=teal!75!black, fill=white, thick, rounded corners=3pt, minimum height=0.8cm, text width=3.4cm, align=center, inner sep=3pt},
+        chan/.style={rectangle, draw=red!70!black, fill=white, thick, dashed, rounded corners=4pt, minimum height=0.9cm, text width=3.9cm, align=center, font=\scriptsize, inner sep=3pt},
         arrow/.style={->, thick, draw=black!75},
         retarrow/.style={->, thick, draw=blue!75!black}
     ]
+        % Header Labels
+        \node[font=\bfseries\footnotesize, text=blue!85!black] (h_send) at (1.7, 5.2) {Contending Stations (\texttt{sender})};
+        \node[font=\bfseries\footnotesize, text=red!80!black]  (h_serv) at (8.0, 5.2) {CDMA Channel Server (\texttt{server})};
+        \node[font=\bfseries\footnotesize, text=teal!85!black] (h_recv) at (14.3, 5.2) {Destination Receiver (\texttt{receiver})};
+
+        % Senders Column
+        \node[block, below=0.25cm of h_send] (s_read)  {1. File Ingestion\\(\texttt{input\_station\_i.txt})};
+        \node[block, below=of s_read]        (s_frame) {2. \texttt{prepareStationFrame()}\\Build 65B Frame (520b)};
+        \node[proc,  below=of s_frame]       (s_cdma)  {3. \texttt{encodeFrameCDMA()}\\Multiply bits by $\mathbf{W}_i$};
+        \node[proc,  below=of s_cdma]        (s_send)  {4. Socket Dispatch\\Send $520 \times N$ chips};
+        \node[proc,  below=0.75cm of s_send] (s_ack)   {9. Slot Synchronizer\\Ingest Slot ACK (\texttt{0xA5})};
+        \node[proc,  below=of s_ack]         (s_done)  {10. \texttt{MSG\_STATION\_DONE}\\Signal Completion};
+
+        % Server Column
+        \node[chan, below=0.25cm of h_serv]  (c_reg)    {Station Registry \& Walsh Setup\\Generate $N \times N$ Matrix $\mathbf{H}_N$};
+        \node[chan, below=of c_reg]          (c_assign) {Assign Code $\mathbf{W}_i \in \{\pm 1\}^N$\\Distribute to Senders/Receiver};
+        \node[chan, below=0.55cm of c_assign](c_super)  {Linear Superposition Engine\\$\mathbf{S}[c] = \sum_{i=0}^{n-1} d_i \mathbf{W}_i[c]$\\Slot Pacing \& Chip Summation};
+        \node[chan, draw=blue!70!black, below=0.55cm of c_super] (c_fwd) {Broadcast Composite Signal\\Send $\mathbf{S}$ ($520 \times N$ chips)};
+        \node[chan, draw=teal!70!black, below=0.55cm of c_fwd]   (c_ack) {Relay Slot ACK to Senders\\Forward \texttt{0xA5} to active nodes};
+
+        % Receiver Column
+        \node[block] (r_recv) at (14.3, 1.35)          {5. Socket Ingestion\\Ingest $\mathbf{S}$ vector};
+        \node[proc,  below=of r_recv]        (r_corr)   {6. Correlator Bank\\$\frac{1}{N}(\mathbf{S} \cdot \mathbf{W}_i)$ for $i=0..N-1$};
+        \node[block, below=of r_corr]        (r_unpack) {7. \texttt{unpackFrame()}\\Verify FCS \& Reassemble};
+        \node[block, below=of r_unpack]      (r_out)    {8. Output File Writer\\Save to \texttt{output\_station\_i.txt}};
+
         % Background Containers
         \begin{scope}[on background layer]
-            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (-0.4, -4.5) rectangle (3.8, 4.8);
-            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (5.2, -4.5) rectangle (9.8, 4.8);
-            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (11.2, -4.5) rectangle (15.4, 4.8);
+            \draw[draw=blue!40, fill=blue!3, rounded corners=6pt] (-0.4, -4.5) rectangle (3.8, 5.6);
+            \draw[draw=red!40, fill=red!2, dashed, rounded corners=6pt] (5.7, -4.5) rectangle (10.3, 5.6);
+            \draw[draw=teal!40, fill=teal!3, rounded corners=6pt] (12.2, -4.5) rectangle (16.4, 5.6);
         \end{scope}
 
-        % Header Labels
-        \node[font=\bfseries\footnotesize, text=blue!85!black] at (1.7, 4.4) {Contending Stations (\texttt{sender})};
-        \node[font=\bfseries\footnotesize, text=red!80!black]  at (7.5, 4.4) {CDMA Channel Server (\texttt{server})};
-        \node[font=\bfseries\footnotesize, text=teal!85!black] at (13.3, 4.4) {Destination Receiver (\texttt{receiver})};
-
-        % Senders
-        \node[block] (s_read)  at (1.7, 3.6)  {1. File Ingestion\\(\texttt{input\_station\_i.txt})};
-        \node[block] (s_frame) at (1.7, 2.35) {2. \texttt{prepareStationFrame()}\\Build 65B Frame (520b)};
-        \node[proc]  (s_cdma)  at (1.7, 1.0)  {3. \texttt{encodeFrameCDMA()}\\Multiply bits by $\mathbf{W}_i$};
-        \node[proc]  (s_send)  at (1.7, -0.4) {4. Socket Dispatch\\Send $520 \times N$ chips};
-        \node[proc]  (s_ack)   at (1.7, -2.0) {9. Slot Synchronizer\\Ingest Slot ACK (\texttt{0xA5})};
-        \node[proc]  (s_done)  at (1.7, -3.6) {10. \texttt{MSG\_STATION\_DONE}\\Signal Completion};
-
-        % Server
-        \node[chan] (c_reg)   at (7.5, 3.6)  {Station Registry \& Walsh Setup\\Generate $N \times N$ Matrix $\mathbf{H}_N$};
-        \node[chan] (c_assign)at (7.5, 2.35) {Assign Code $\mathbf{W}_i \in \{\pm 1\}^N$\\Distribute to Senders/Receiver};
-        \node[chan] (c_super) at (7.5, 0.3)  {Linear Superposition Engine\\$\mathbf{S}[c] = \sum_{i=0}^{n-1} d_i \mathbf{W}_i[c]$\\Slot Pacing \& Chip Summation};
-        \node[chan, draw=blue!70!black] (c_fwd) at (7.5, -1.8) {Broadcast Composite Signal\\Send $\mathbf{S}$ ($520 \times N$ chips)};
-        \node[chan, draw=teal!70!black] (c_ack) at (7.5, -3.4) {Relay Slot ACK to Senders\\Forward \texttt{0xA5} to active nodes};
-
-        % Receiver
-        \node[block] (r_recv)   at (13.3, 0.3)  {5. Socket Ingestion\\Ingest $\mathbf{S}$ vector};
-        \node[proc]  (r_corr)   at (13.3, -1.1) {6. Correlator Bank\\$\frac{1}{N}(\mathbf{S} \cdot \mathbf{W}_i)$ for $i=0..N-1$};
-        \node[block] (r_unpack) at (13.3, -2.4) {7. \texttt{unpackFrame()}\\Verify FCS \& Reassemble};
-        \node[block] (r_out)    at (13.3, -3.7) {8. Output File Writer\\Save to \texttt{output\_station\_i.txt}};
-
-        % Arrows
+        % Intra-Column Vertical Arrows
         \draw[arrow] (s_read) -- (s_frame);
         \draw[arrow] (s_frame) -- (s_cdma);
         \draw[arrow] (s_cdma) -- (s_send);
+        \draw[arrow] (s_ack)  -- (s_done);
 
-        \draw[arrow, blue!70!black] (s_send.east) -- node[above=2pt, font=\scriptsize] {Chips ($d_i \mathbf{W}_i$)} (c_super.west);
-        \draw[arrow] (c_reg) -- (c_assign);
+        \draw[arrow] (c_reg)    -- (c_assign);
         \draw[arrow] (c_assign) -- (c_super);
-        \draw[arrow] (c_super) -- (c_fwd);
+        \draw[arrow] (c_super)  -- (c_fwd);
 
-        \draw[arrow, teal!80!black] (c_fwd.east) -- node[above=2pt, font=\scriptsize] {Composite $\mathbf{S}$} (r_recv.west);
-        \draw[arrow] (r_recv) -- (r_corr);
-        \draw[arrow] (r_corr) -- (r_unpack);
+        \draw[arrow] (r_recv)   -- (r_corr);
+        \draw[arrow] (r_corr)   -- (r_unpack);
         \draw[arrow] (r_unpack) -- (r_out);
 
-        \draw[arrow, purple!80!black] (r_unpack.west) -- ++(-1.0, 0) |- node[pos=0.25, above=1pt, font=\scriptsize] {Slot ACK (\texttt{0xA5})} (c_ack.east);
-        \draw[retarrow] (c_ack.west) -- node[above=1pt, font=\scriptsize] {Relay ACK} (s_ack.east);
-        \draw[arrow] (s_ack) -- (s_done);
+        % Inter-Column Orthogonal Arrows (prevents text collisions)
+        \draw[arrow, blue!70!black] (s_send.east) -- ++(0.95, 0) |- (c_super.west)
+            node[pos=0.25, above=2pt, font=\scriptsize, fill=white, inner sep=1pt] {Chips ($d_i \mathbf{W}_i$)};
+
+        \draw[arrow, teal!80!black] (c_fwd.east) -- ++(0.95, 0) |- (r_recv.west)
+            node[pos=0.25, above=2pt, font=\scriptsize, fill=white, inner sep=1pt] {Composite $\mathbf{S}$};
+
+        \draw[arrow, purple!80!black] (r_unpack.west) -- ++(-0.95, 0) |- (c_ack.east)
+            node[pos=0.75, above=2pt, font=\scriptsize, fill=white, inner sep=1pt] {Slot ACK (\texttt{0xA5})};
+
+        \draw[retarrow] (c_ack.west) -- ++(-0.95, 0) |- (s_ack.east)
+            node[pos=0.75, above=2pt, font=\scriptsize, fill=white, inner sep=1pt] {Relay ACK};
     \end{tikzpicture}}
     \caption{Three-tier procedural organization of the synchronous multi-station CDMA shared channel system.}
     \label{fig:arch_overview}
@@ -598,72 +607,81 @@ Figure \ref{fig:cdma_plots} illustrates the chip expansion overhead and aggregat
 
 \begin{figure}[H]
     \centering
-    \resizebox{\textwidth}{!}{
+    \resizebox{0.96\textwidth}{!}{%
     \begin{tikzpicture}
-        % Subplot 1: Chips per Frame vs N
+        % Subplot 1: Chips per Frame vs N (Top Left)
         \begin{axis}[
             name=c1_ax1,
-            width=6.6cm, height=4.8cm,
-            title={\textbf{Chips per Frame vs. Spreading Factor $N$}},
-            title style={font=\small},
+            width=8.2cm, height=5.8cm,
+            title={\textbf{Chips per Frame vs.\ Spreading Factor $N$}},
+            title style={font=\small, yshift=3pt},
             xlabel={Spreading Factor ($N$ chips/bit)},
             ylabel={Chips per 65-Byte Frame},
-            label style={font=\footnotesize},
+            ylabel style={font=\footnotesize, yshift=-3pt},
+            xlabel style={font=\footnotesize},
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=1, xmax=9, ymin=0, ymax=4600
+            xmin=0.3, xmax=9.2, ymin=0, ymax=4900,
+            xtick={1, 2, 4, 6, 8},
+            clip=true
         ]
-            \addplot[color=blue!80!black, mark=*, mark size=1.8pt, thick] coordinates {
+            \addplot[color=blue!80!black, mark=*, mark size=2.0pt, thick] coordinates {
                 (1, 520) (2, 1040) (4, 2080) (8, 4160)
             };
-            \node[font=\tiny, anchor=south east] at (axis cs:2,1040) {1,040 ($N=2$)};
-            \node[font=\tiny, anchor=south east] at (axis cs:4,2080) {2,080 ($N=4$)};
-            \node[font=\tiny, anchor=south east] at (axis cs:8,4160) {4,160 ($N=8$)};
+            \node[font=\scriptsize, anchor=north west, xshift=2pt] at (axis cs:1,520)  {520 ($N=1$)};
+            \node[font=\scriptsize, anchor=north west, xshift=2pt] at (axis cs:2,1040) {1,040 ($N=2$)};
+            \node[font=\scriptsize, anchor=south east, yshift=2pt] at (axis cs:4,2080) {2,080 ($N=4$)};
+            \node[font=\scriptsize, anchor=south east, xshift=-2pt] at (axis cs:8,4160) {4,160 ($N=8$)};
         \end{axis}
 
-        % Subplot 2: Channel Collisions: CSMA vs CDMA
+        % Subplot 2: Channel Collisions: CSMA vs CDMA (Top Right)
         \begin{axis}[
             name=c1_ax2,
-            at={($(c1_ax1.east)+(1.3cm,0)$)}, anchor=west,
-            width=6.6cm, height=4.8cm,
-            title={\textbf{Channel Collisions: CSMA vs. CDMA}},
-            title style={font=\small},
+            at={($(c1_ax1.east)+(2.4cm,0)$)}, anchor=west,
+            width=8.2cm, height=5.8cm,
+            title={\textbf{Channel Collisions: CSMA vs.\ CDMA}},
+            title style={font=\small, yshift=3pt},
             xlabel={Contending Stations ($n$)},
             ylabel={Collisions Recorded},
-            label style={font=\footnotesize},
+            ylabel style={font=\footnotesize, yshift=-6pt},
+            xlabel style={font=\footnotesize},
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
-            xmin=1, xmax=6, ymin=0, ymax=1200,
-            legend pos=north west, legend style={font=\tiny}
+            xmin=1.5, xmax=5.5, ymin=-60, ymax=1550,
+            xtick={2, 3, 4, 5},
+            legend pos=north west,
+            legend style={font=\scriptsize, fill=white, fill opacity=0.9, text opacity=1}
         ]
             % CSMA/CD reference data from Assignment 3
-            \addplot[color=red!80!black, mark=square*, mark size=1.5pt, thick] coordinates {
+            \addplot[color=red!80!black, mark=square*, mark size=1.8pt, thick] coordinates {
                 (2, 498) (4, 983) (5, 1140)
             };
             % CDMA: Exactly 0 collisions
-            \addplot[color=teal!90!black, mark=triangle*, mark size=2.0pt, very thick] coordinates {
+            \addplot[color=teal!90!black, mark=triangle*, mark size=2.2pt, very thick] coordinates {
                 (2, 0) (3, 0) (4, 0) (5, 0)
             };
             \legend{CSMA/CD (Asgn 3), CDMA (Asgn 4)}
         \end{axis}
 
-        % Subplot 3: Aggregate Throughput (kbps)
+        % Subplot 3: Aggregate Throughput (Bottom Center)
         \begin{axis}[
             name=c1_ax3,
-            at={($(c1_ax2.east)+(1.3cm,0)$)}, anchor=west,
-            width=6.6cm, height=4.8cm,
+            at={($(c1_ax1.south)!0.5!(c1_ax2.south)-(0,1.9cm)$)}, anchor=north,
+            width=9.2cm, height=5.8cm,
             title={\textbf{Aggregate Throughput across Test Cases}},
-            title style={font=\small},
+            title style={font=\small, yshift=3pt},
             xlabel={Test Scenario},
             ylabel={Throughput (kbps)},
+            ylabel style={font=\footnotesize, yshift=-3pt},
+            xlabel style={font=\footnotesize},
             symbolic x coords={TC1, TC2, TC3, TC4, TC5},
             xtick=data,
-            label style={font=\footnotesize},
+            enlarge x limits=0.15,
             tick label style={font=\scriptsize},
             grid=both, grid style={dashed, gray!30},
             ymin=0, ymax=4200
         ]
-            \addplot[ybar, fill=blue!40, draw=blue!80!black, bar width=12pt] coordinates {
+            \addplot[ybar, fill=blue!40, draw=blue!80!black, bar width=15pt] coordinates {
                 (TC1, 3163) (TC2, 2850) (TC3, 1754) (TC4, 3601) (TC5, 3234)
             };
         \end{axis}
