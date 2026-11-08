@@ -3,6 +3,7 @@
 **/sender
 **/receiver
 **/test_eval
+**/server
 
 # Ignore LaTeX typesetting logs
 *.aux
