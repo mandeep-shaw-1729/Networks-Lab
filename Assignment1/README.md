@@ -1,5 +1,5 @@
 # Networks-Lab
-## Submodules caveat
+# Submodules caveat
 
 This repo uses submodules. Use
 
