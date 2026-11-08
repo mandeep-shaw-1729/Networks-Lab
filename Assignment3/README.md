@@ -51,12 +51,24 @@ or
 ```bash
 ./server
 ```
+for Windows,
+```bash
+server.exe 2
+```
+or
+```bash
+server.exe
+```
 #### 2. Start the Receiver Second
 
 Run the receiver node to listen for delivered frames from the server:
 
 ```bash
 ./receiver
+```
+for Windows,
+```bash
+receiver.exe
 ```
 *(Choose `1` for verbose frame details if prompted)*.
 
@@ -74,6 +86,21 @@ In separate terminal windows, start your sender stations with unique names:
 or you can simply do,
 ```bash
 ./sender
+```
+Then, name them individually.
+
+---
+for Windows,
+```bash
+sender.exe Station_A
+```
+* **Sender 2 (in another terminal):**
+```bash
+sender.exe Station_B
+```
+or you can simply do,
+```bash
+sender.exe
 ```
 Then, name them individually.
 
