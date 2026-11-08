@@ -159,7 +159,6 @@ The primary objectives of this laboratory assignment are:
 
 % =========================================================================
 % SECTION 2: QUESTION 1 - ICMP AND ARP TRAFFIC
-% (Section 2.1 immediately follows to fill Page 1)
 % =========================================================================
 \section{Question 1: ICMP and ARP Traffic Analysis}
 
@@ -183,7 +182,7 @@ $ ping -c 4 10.223.117.59
 \subsection{Part 1: Address Resolution Protocol (ARP) Analysis}
 Before an IP datagram can be transmitted over a local Ethernet/802.3 broadcast domain, the host's operating system consults its internal ARP cache. Because no entry initially exists for target IP \texttt{10.223.117.59}, an ARP Request frame is broadcast to the Layer-2 broadcast address \texttt{ff:ff:ff:ff:ff:ff}.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Q1-s1.png}
   \caption{Wireshark packet capture filtered by \texttt{arp}, capturing ARP request broadcasts and corresponding unicast replies between \texttt{10.223.117.129} and \texttt{10.223.117.59}.}
@@ -212,7 +211,7 @@ Once received, the local host updates its kernel ARP routing table, allowing the
 \subsection{Part 2: Internet Control Message Protocol (ICMP) Echo Sequence}
 With the destination MAC address resolved, the diagnostic ping packets are transmitted. The display filter \texttt{icmp} captures four consecutive Echo Request and Echo Reply pairs.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Q1-s2.png}
   \caption{Wireshark packet capture filtered by \texttt{icmp}, showing alternating ICMP Echo Requests (Type 8) and Echo Replies (Type 0) with matching process IDs and sequence numbers.}
@@ -267,9 +266,9 @@ The identifier \texttt{0x0e6f} (decimal 3695) uniquely identifies the Linux \tex
 \subsection{Part 2a: Protocol Diversity in Unfiltered Packet Listing}
 A web browser was launched to generate HTTP/HTTPS traffic. Inspection of the unfiltered packet capture reveals a diverse cross-section of protocols operating across the network architecture.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
-  \makebox[\textwidth][c]{\includegraphics[width=1.10\textwidth]{Q2-2a.png}}
+  \makebox[\textwidth][c]{\includegraphics[width=17cm, height=14cm]{Q2-2a.png}}
   \caption{Unfiltered packet capture displaying concurrent interleaved protocols during web browsing.}
   \label{fig:q2_unfiltered}
 \end{figure}
@@ -287,7 +286,7 @@ The distinct protocols observed in the \textbf{Protocol} column are:
 \subsection{Parts 2b \& 2c: HTTP Response Time (RTT) and IP Addresses}
 The Wireshark time display format was changed to \textbf{Time-of-day} via \texttt{View $\rightarrow$ Time Display Format $\rightarrow$ Time-of-day}. The capture was filtered with the display filter \texttt{http} to isolate the HTTP request-response transaction.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Screenshot_2026-11-06_12-19-49.png}
   \caption{HTTP GET request (Packet 219) and matching HTTP 204 OK response (Packet 224) displayed in Time-of-day format.}
@@ -329,7 +328,7 @@ The measured round-trip time of $39.46\text{ ms}$ encompasses network propagatio
 \subsection{Parts 2d \& 2e: Dissecting HTTP GET and Host Parameter}
 Selecting Packet 219 in the Packet List Panel and expanding the \textbf{Hypertext Transfer Protocol} layer in the Packet Details Panel reveals the complete set of HTTP request headers.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \makebox[\textwidth][c]{\includegraphics[width=1.10\textwidth]{Screenshot_2026-11-06_12-22-39.png}}
   \caption{Expanded HTTP layer in the Packet Details Panel for Packet 219, highlighting the \texttt{Host} parameter and its corresponding raw hex and ASCII byte representation.}
@@ -360,7 +359,7 @@ Selecting Packet 219 in the Packet List Panel and expanding the \textbf{Hypertex
 \subsection{Observation and Packet Dissection}
 In Wireshark, the Packet Details Panel and Packet Bytes Panel maintain bidirectional field-to-byte synchronization. When the \lstinline|Host: firefox-portal-detection.com\r\n| field is clicked in the middle Details Panel, the corresponding bytes are immediately highlighted in blue within the bottom-right Packet Bytes Panel, as evidenced in Figure \ref{fig:get_details}.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \makebox[\textwidth][c]{\includegraphics[width=1.10\textwidth]{Screenshot_2026-11-06_12-22-39.png}}
   \caption{Detailed inspection showing the synchronized highlighting of the \texttt{Host} header in both hexadecimal (left) and ASCII (right) formats within the Packet Bytes Panel.}
@@ -431,33 +430,37 @@ In ASCII, this sequence translates to the literal protocol keyword \textbf{\text
 \subsection{Protocol Display Filters in Wireshark}
 Wireshark provides a boolean expression engine for filtering packet views without altering underlying capture buffers. The following primary filters were evaluated:
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-25-53.png}
+    \includegraphics[width=17cm, height=8cm]{Screenshot_2026-11-06_12-25-53.png}
     \caption{HTTP display filter (\texttt{http}).}
     \label{fig:filt_http}
-  \end{subfigure}\vspace{0.25cm}
+  \end{subfigure}
+  \vspace{0.15cm}
+  
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-27-01.png}
+    \includegraphics[width=17cm,height=8cm]{Screenshot_2026-11-06_12-27-01.png}
     \caption{TCP display filter (\texttt{tcp}).}
     \label{fig:filt_tcp}
   \end{subfigure}
 \end{figure}
 
-\begin{figure}[!htbp]\ContinuedFloat
+\begin{figure}[H]
   \centering
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-27-46.png}
+    \includegraphics[width=17cm,height=10cm]{Screenshot_2026-11-06_12-27-46.png}
     \caption{DNS display filter (\texttt{dns}).}
     \label{fig:filt_dns}
-  \end{subfigure}\vspace{0.25cm}
+  \end{subfigure}
+  \vspace{0.15cm}
+  
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-28-50.png}
+    \includegraphics[width=17cm,height=10cm]{Screenshot_2026-11-06_12-28-50.png}
     \caption{UDP display filter (\texttt{udp}).}
     \label{fig:filt_udp}
   \end{subfigure}
@@ -468,9 +471,9 @@ Wireshark provides a boolean expression engine for filtering packet views withou
 \subsection{Part 5a: Following Network Conversations (UDP Stream Reassembly)}
 To inspect the end-to-end conversation flow, a datagram packet was selected, followed by \textbf{Right Click $\rightarrow$ Follow $\rightarrow$ UDP Stream}. Wireshark reassembles the fragmented payload bytes, strips the lower headers, and presents the unencapsulated application payload in a dedicated viewer window.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
-  \includegraphics[width=0.95\textwidth]{Screenshot_2026-11-06_12-34-19.png}
+  \includegraphics[width=0.90\textwidth]{Screenshot_2026-11-06_12-34-19.png}
   \caption{Wireshark stream reconstruction dialog for UDP Stream 8 (\texttt{udp.stream eq 8}) capturing an active mDNS service announcement.}
   \label{fig:follow_udp}
 \end{figure}
@@ -514,14 +517,14 @@ http and tcp.srcport == 80
 \end{lstlisting}
 Packet No. 224 was selected, and the \textbf{Ethernet II} layer was expanded.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Screenshot_2026-11-06_12-37-24.png}
   \caption{Wireshark display showing Packet 224 matching filter \texttt{http and tcp.srcport == 80} with expanded Ethernet II layer.}
   \label{fig:eth_expanded}
 \end{figure}
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Screenshot_2026-11-06_12-38-51.png}
   \caption{Detailed bit-level inspection of Destination and Source addresses in the Ethernet II header.}
@@ -599,17 +602,20 @@ The \textbf{Organizationally Unique Identifier (OUI)} is assigned by the IEEE Re
 \subsection{Inspection in Packet Bytes Panel}
 By selecting the Destination and Source address fields in Packet 224, the exact raw bytes are highlighted in the Packet Bytes Panel:
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \begin{subfigure}[b]{1.0\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-41-28.png}
+    \includegraphics[width=17cm, height=5cm]{Screenshot_2026-11-06_12-41-28.png}
     \caption{PC NIC MAC Address \texttt{d8 f3 bc af 91 15} highlighted in raw bytes panel.}
     \label{fig:pc_oui}
-  \end{subfigure}\vspace{0.25cm}
+  \end{subfigure}
+\end{figure}
+\begin{figure}[H]
+  \centering
   \begin{subfigure}[b]{1.0\textwidth}
     \centering
-    \includegraphics[width=\textwidth]{Screenshot_2026-11-06_12-42-35.png}
+    \includegraphics[width=17cm, height=8.5cm]{Screenshot_2026-11-06_12-42-35.png}
     \caption{Gateway / Server NIC MAC Address \texttt{80 30 e0 b7 a5 00} highlighted in raw bytes panel.}
     \label{fig:gw_oui}
   \end{subfigure}
@@ -655,17 +661,17 @@ By selecting the Destination and Source address fields in Packet 224, the exact 
 \subsection{Aggregate Capture Hierarchy Profiling}
 Opening \textbf{Statistics $\rightarrow$ Protocol Hierarchy} generates an aggregated statistical profile of the complete 94,876 captured packets (totaling 59,833,276 bytes).
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth,height=0.35\textheight,keepaspectratio]{Screenshot_2026-11-06_12-44-57.png}
+    \includegraphics[width=17cm, height=10cm]{Screenshot_2026-11-06_12-44-57.png}
     \caption{Protocol hierarchy statistics highlighting Transmission Control Protocol (TCP).}
     \label{fig:stat_tcp}
   \end{subfigure}\vspace{0.2cm}
   \begin{subfigure}[b]{0.96\textwidth}
     \centering
-    \includegraphics[width=\textwidth,height=0.35\textheight,keepaspectratio]{Screenshot_2026-11-06_12-44-24.png}
+    \includegraphics[width=17cm, height=10cm]{Screenshot_2026-11-06_12-44-24.png}
     \caption{Protocol hierarchy statistics highlighting User Datagram Protocol (UDP).}
     \label{fig:stat_udp}
   \end{subfigure}
@@ -737,7 +743,7 @@ The \textbf{Flow Graph} feature renders a two-dimensional ladder (sequence) diag
 \subsection{Step 1: General Flow Graph (All Flows, Network Source)}
 Selecting \textbf{Flow type: All Flows} with \textbf{Addresses: Network} generates the holistic traffic interaction graph across all subnet IP nodes.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Screenshot_2026-11-06_12-47-01.png}
   \caption{Wireshark General Flow Graph (All Flows, Network Addresses) showing multicast discovery traffic.}
@@ -753,7 +759,7 @@ Selecting \textbf{Flow type: All Flows} with \textbf{Addresses: Network} generat
 \subsection{Step 2: TCP Flow Graph (TCP Connection State Machine)}
 Selecting \textbf{Flow type: TCP Flows} isolates the state transitions and reliable byte-stream exchange between client \texttt{172.28.9.68} and web server \texttt{151.101.193.91}.
 
-\begin{figure}[!htbp]
+\begin{figure}[H]
   \centering
   \includegraphics[width=1.0\textwidth]{Screenshot_2026-11-06_12-47-46.png}
   \caption{Wireshark TCP Flow Graph showing the complete TCP connection lifecycle (Handshake $\rightarrow$ Data Transfer $\rightarrow$ Teardown).}
@@ -815,16 +821,10 @@ This laboratory assignment successfully demonstrated the end-to-end operation of
 \begin{thebibliography}{9}
   \bibitem{kurose}
   Kurose, J. F., and Ross, K. W., \textit{Computer Networking: A Top-Down Approach}, 8th ed., Pearson, 2021.
-  \bibitem{tanenbaum}
-  Tanenbaum, A. S., and Wetherall, D. J., \textit{Computer Networks}, 5th ed., Prentice Hall, 2011.
   \bibitem{wireshark_docs}
   Wireshark Documentation Team, \textit{Wireshark User's Guide}, v4.2, \url{https://www.wireshark.org/docs/wsug_html_chunked/}, 2026.
   \bibitem{rfc2616}
   Fielding, R., et al., \textit{Hypertext Transfer Protocol -- HTTP/1.1}, RFC 2616, Internet Engineering Task Force (IETF), 1999.
-  \bibitem{rfc792}
-  Postel, J., \textit{Internet Control Message Protocol}, RFC 792, DARPA, 1981.
-  \bibitem{rfc826}
-  Plummer, D. C., \textit{An Ethernet Address Resolution Protocol}, RFC 826, Network Working Group, 1982.
   \bibitem{ieee802}
   IEEE Standards Association, \textit{IEEE Standard for Ethernet}, IEEE Std 802.3-2022.
 \end{thebibliography}

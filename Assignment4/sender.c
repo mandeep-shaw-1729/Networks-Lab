@@ -2,6 +2,11 @@
 #include <ctype.h>
 #include "csma_common.h"
 
+#ifdef _WIN32
+    #include <io.h>
+#else
+    #include <unistd.h>
+#endif
 static uint8_t hashStationName(const char *name) {
     uint32_t h = 5381;
     while (*name) h = ((h << 5) + h) + (unsigned char)(*name++);
